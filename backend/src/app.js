@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
+import mongoose from 'mongoose';
 
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -25,10 +26,6 @@ import bankRoutes from './routes/bank.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
-// Controllers for root level shortcuts
-import { getDashboard, getPerformance } from './controllers/user.controller.js';
-import { protect } from './middleware/auth.js';
-
 const app = express();
 
 // Security Middlewares
@@ -47,16 +44,42 @@ app.use(cookieParser());
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(requestId);
 
-// Global Rate Limiting
+// Root Endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: 'Finova Backend',
+    status: 'running'
+  });
+});
+
+// Global Rate Limiting for API routes
 app.use('/api', apiLimiter);
+
+// Dedicated Health Check Endpoints
+app.get('/health', (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    success: true,
+    service: 'Finova Backend',
+    status: 'healthy',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    success: true,
+    service: 'Finova Backend',
+    status: 'healthy',
+    database: isDbConnected ? 'connected' : 'disconnected'
+  });
+});
 
 // Swagger Documentation Route
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Health Check
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Finova API Engine Operational', timestamp: new Date().toISOString() });
-});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -72,6 +95,15 @@ app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/bank-accounts', bankRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+
+// 404 Route Not Found Handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.originalUrl || req.path
+  });
+});
 
 // Centralized Error Handling
 app.use(errorHandler);
