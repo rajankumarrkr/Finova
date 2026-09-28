@@ -186,42 +186,56 @@ export const Team = () => {
         </div>
 
         <div className="space-y-2">
-          {filteredMembers.map(member => (
-            <TeamMemberItem key={member.id} member={member} />
-          ))}
+          {filteredMembers.length > 0 ? (
+            filteredMembers.map(member => (
+              <TeamMemberItem key={member.id} member={member} />
+            ))
+          ) : (
+            <Card className="p-8 text-center text-slate-400">
+              <p className="text-sm">No team members registered yet.</p>
+              <p className="text-xs text-slate-500 mt-1">Share your referral code <strong className="text-purple-300 font-mono">{referralCode}</strong> to start earning 10% commission!</p>
+            </Card>
+          )}
         </div>
       </div>
 
       {/* REFERRAL REWARD HISTORY */}
       <div className="space-y-3">
         <h3 className="text-lg font-bold text-white font-sans">Referral Reward History</h3>
-        <Card className="p-4 overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
-                <th className="pb-3 pl-2">Member</th>
-                <th className="pb-3">Action</th>
-                <th className="pb-3">Reward Earned</th>
-                <th className="pb-3">Date</th>
-                <th className="pb-3 text-right pr-2">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {referralHistoryList.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
-                  <td className="py-3.5 pl-2 font-semibold text-white">{item.memberName}</td>
-                  <td className="py-3.5 text-slate-300 font-mono">{item.action}</td>
-                  <td className="py-3.5 text-purple-400 font-mono font-bold">{item.reward}</td>
-                  <td className="py-3.5 text-slate-400">{item.date}</td>
-                  <td className="py-3.5 text-right pr-2">
-                    <Badge variant="emerald" size="sm">{item.status}</Badge>
-                  </td>
+        {referralHistoryList.length > 0 ? (
+          <Card className="p-4 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="pb-3 pl-2">Member</th>
+                  <th className="pb-3">Action</th>
+                  <th className="pb-3">Reward Earned</th>
+                  <th className="pb-3">Date</th>
+                  <th className="pb-3 text-right pr-2">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {referralHistoryList.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
+                    <td className="py-3.5 pl-2 font-semibold text-white">{item.memberName}</td>
+                    <td className="py-3.5 text-slate-300 font-mono">{item.action}</td>
+                    <td className="py-3.5 text-purple-400 font-mono font-bold">{item.reward}</td>
+                    <td className="py-3.5 text-slate-400">{item.date}</td>
+                    <td className="py-3.5 text-right pr-2">
+                      <Badge variant="emerald" size="sm">{item.status}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        ) : (
+          <Card className="p-8 text-center text-slate-400">
+            <p className="text-sm">No referral reward history yet.</p>
+          </Card>
+        )}
       </div>
     </div>
   );
 };
+

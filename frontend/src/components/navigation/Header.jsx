@@ -9,6 +9,18 @@ export const Header = () => {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getDynamicGreeting = () => {
+    const hour = new Date().getHours();
+    let timeGreeting = 'Good morning';
+    if (hour >= 12 && hour < 17) {
+      timeGreeting = 'Good afternoon';
+    } else if (hour >= 17) {
+      timeGreeting = 'Good evening';
+    }
+    const firstName = user?.name ? user.name.split(' ')[0] : 'User';
+    return `${timeGreeting}, ${firstName} 👋`;
+  };
+
   // Contextual page titles based on active route
   const getPageMeta = () => {
     switch (location.pathname) {
@@ -25,9 +37,10 @@ export const Header = () => {
       case '/notifications':
         return { title: 'Notifications Center', subtitle: 'Stay updated with your latest earnings and account activity.' };
       default:
-        return { title: 'Good afternoon, Rajan 👋', subtitle: "Here's your investment overview." };
+        return { title: getDynamicGreeting(), subtitle: "Here's your investment overview." };
     }
   };
+
 
   const meta = getPageMeta();
 

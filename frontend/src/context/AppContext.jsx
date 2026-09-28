@@ -11,39 +11,248 @@ import {
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(initialUserData);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  // LocalStorage persistence helpers
+  const getInitialUser = () => {
+    try {
+      const saved = localStorage.getItem('finova_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return initialUserData;
+  };
+
+  const getInitialRegisteredUsers = () => {
+    try {
+      const saved = localStorage.getItem('finova_registered_users');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        name: "Rajan Kumar",
+        phone: "9876543210",
+        email: "rajan@example.com",
+        password: "password123",
+        referralCode: "RAJAN50"
+      }
+    ];
+  };
+
+  const [user, setUser] = useState(getInitialUser);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('finova_auth') === 'true' || !!localStorage.getItem('finova_token');
+  });
+  const [registeredUsers, setRegisteredUsers] = useState(getInitialRegisteredUsers);
   const [activeInvestments, setActiveInvestments] = useState(activeInvestmentsList);
   const [transactions, setTransactions] = useState(initialTransactionsList);
   const [bankAccounts, setBankAccounts] = useState(initialBankAccounts);
   const [notifications, setNotifications] = useState(initialNotificationsList);
 
+  // Sync user profile from backend on reload if token exists
+  React.useEffect(() => {
+    const fetchMe = async () => {
+      const token = localStorage.getItem('finova_token');
+      if (!token) return;
+      try {
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data?.user) {
+          const apiUser = data.data.user;
+          const updatedUser = {
+            ...initialUserData,
+            id: apiUser.id || apiUser._id,
+            name: apiUser.name,
+            email: apiUser.email,
+            phone: apiUser.phone,
+            referralCode: apiUser.referralCode,
+            balances: apiUser.balances || initialUserData.balances
+          };
+          setUser(updatedUser);
+          setIsAuthenticated(true);
+          localStorage.setItem('finova_user', JSON.stringify(updatedUser));
+          localStorage.setItem('finova_auth', 'true');
+        } else {
+          // Token is invalid or expired, clear invalid token so it doesn't overwrite future logins
+          localStorage.removeItem('finova_token');
+        }
+      } catch (err) {
+        // Network error - keep local saved session intact
+      }
+    };
+    fetchMe();
+  }, []);
+
   // Authentication Handlers
-  const login = (mobile, password) => {
-    setUser(prev => ({
-      ...prev,
-      phone: `+91 ${mobile}`
-    }));
+  const login = async (mobile, password) => {
+    // 1. Try Backend API first if backend is live
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: mobile, password })
+      });
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.data?.accessToken) {
+          localStorage.setItem('finova_token', data.data.accessToken);
+        }
+        const apiUser = data.data?.user;
+        let updatedUser = user;
+        if (apiUser) {
+          updatedUser = {
+            ...initialUserData,
+            id: apiUser.id || apiUser._id,
+            name: apiUser.name,
+            email: apiUser.email,
+            phone: apiUser.phone,
+            referralCode: apiUser.referralCode,
+            balances: apiUser.balances || initialUserData.balances
+          };
+          setUser(updatedUser);
+          localStorage.setItem('finova_user', JSON.stringify(updatedUser));
+          localStorage.setItem('finova_auth', 'true');
+        }
+        setIsAuthenticated(true);
+        showToast(`Welcome back, ${apiUser?.name?.split(' ')[0] || 'User'}!`, 'success');
+        return { success: true };
+      } else if (response.status === 401 || response.status === 400 || response.status === 404) {
+        return { success: false, message: data.message || 'Mobile number is not registered. Please register first.' };
+      }
+    } catch (err) {
+      // Backend not reached or offline, fallback to frontend state verification
+    }
+
+    // 2. Local State Verification (Strict registration check)
+    const cleanMobile = mobile.replace(/\D/g, '');
+    const foundUser = registeredUsers.find(u => u.phone.replace(/\D/g, '') === cleanMobile);
+
+    if (!foundUser) {
+      return {
+        success: false,
+        message: `Mobile number (+91 ${cleanMobile}) is NOT registered. Please click 'Register Now' to create an account first.`
+      };
+    }
+
+    if (foundUser.password !== password) {
+      return {
+        success: false,
+        message: 'Incorrect password! Please check your password and try again.'
+      };
+    }
+
+    const updatedUser = {
+      ...initialUserData,
+      id: foundUser.phone,
+      name: foundUser.name,
+      email: foundUser.email || `${cleanMobile}@example.com`,
+      phone: `+91 ${cleanMobile}`,
+      referralCode: foundUser.referralCode || 'REF' + Math.floor(10 + Math.random() * 89)
+    };
+
+    // Remove any stale backend token from previous session
+    localStorage.removeItem('finova_token');
+    setUser(updatedUser);
     setIsAuthenticated(true);
-    showToast(`Welcome back, ${user.name.split(' ')[0]}!`, 'success');
+    localStorage.setItem('finova_user', JSON.stringify(updatedUser));
+    localStorage.setItem('finova_auth', 'true');
+    showToast(`Welcome back, ${foundUser.name.split(' ')[0]}!`, 'success');
+    return { success: true };
   };
 
-  const register = (name, mobile, password, referralCode) => {
-    const newUser = {
-      ...initialUserData,
-      name: name,
-      phone: `+91 ${mobile}`,
+  const register = async (name, mobile, password, referralCode) => {
+    const cleanMobile = mobile.replace(/\D/g, '');
+
+    // 1. Try Backend API
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email: `${cleanMobile}@finova.app`,
+          phone: `+91 ${cleanMobile}`,
+          password,
+          referralCode
+        })
+      });
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        if (data.data?.accessToken) {
+          localStorage.setItem('finova_token', data.data.accessToken);
+        }
+        const apiUser = data.data?.user;
+        const updatedUser = {
+          ...initialUserData,
+          id: apiUser?.id || apiUser?._id,
+          name: apiUser?.name || name,
+          phone: apiUser?.phone || `+91 ${cleanMobile}`,
+          email: apiUser?.email || `${cleanMobile}@finova.app`,
+          referralCode: apiUser?.referralCode || (referralCode ? referralCode.toUpperCase() : "REG" + Math.floor(10 + Math.random() * 89))
+        };
+        setUser(updatedUser);
+        setIsAuthenticated(true);
+        localStorage.setItem('finova_user', JSON.stringify(updatedUser));
+        localStorage.setItem('finova_auth', 'true');
+        showToast(`Account created successfully! Welcome to Finova, ${name.split(' ')[0]}.`, 'success');
+        return { success: true };
+      } else if (!data.success && data.message) {
+        return { success: false, message: data.message };
+      }
+    } catch (err) {
+      // Fallback local registration
+    }
+
+    // 2. Check if mobile already exists locally
+    const existing = registeredUsers.find(u => u.phone.replace(/\D/g, '') === cleanMobile);
+    if (existing) {
+      return {
+        success: false,
+        message: `Mobile number (+91 ${cleanMobile}) is already registered! Please sign in instead.`
+      };
+    }
+
+    const newUserObj = {
+      name,
+      phone: cleanMobile,
+      email: `${cleanMobile}@finova.app`,
+      password,
       referralCode: referralCode ? referralCode.toUpperCase() : "REG" + Math.floor(10 + Math.random() * 89)
     };
-    setUser(newUser);
+
+    const newRegisteredList = [...registeredUsers, newUserObj];
+    setRegisteredUsers(newRegisteredList);
+    localStorage.setItem('finova_registered_users', JSON.stringify(newRegisteredList));
+
+    const updatedUser = {
+      ...initialUserData,
+      id: cleanMobile,
+      name,
+      phone: `+91 ${cleanMobile}`,
+      referralCode: newUserObj.referralCode
+    };
+
+    // Remove any stale backend token from previous session
+    localStorage.removeItem('finova_token');
+    setUser(updatedUser);
     setIsAuthenticated(true);
+    localStorage.setItem('finova_user', JSON.stringify(updatedUser));
+    localStorage.setItem('finova_auth', 'true');
     showToast(`Account created successfully! Welcome to Finova, ${name.split(' ')[0]}.`, 'success');
+    return { success: true };
   };
 
   const logout = () => {
+    localStorage.removeItem('finova_user');
+    localStorage.removeItem('finova_token');
+    localStorage.removeItem('finova_auth');
+    setUser(initialUserData);
     setIsAuthenticated(false);
     showToast('Logged out of session', 'info');
   };
+
+
 
   
   // Modals state

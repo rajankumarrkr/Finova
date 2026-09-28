@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { setIsSupportOpen, showToast, unreadCount } = useApp();
+  const { setIsSupportOpen, unreadCount, logout } = useApp();
   const navigate = useNavigate();
 
   const mainNavItems = [
@@ -30,8 +30,10 @@ export const Sidebar = () => {
   ];
 
   const handleLogout = () => {
-    showToast('Logged out successfully (Mock)', 'info');
+    logout();
+    navigate('/login');
   };
+
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-[#0B0F19] border-r border-slate-800/80 min-h-screen p-5 shrink-0 fixed top-0 left-0 bottom-0 z-40">

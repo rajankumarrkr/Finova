@@ -22,7 +22,7 @@ export const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -52,12 +52,16 @@ export const Register = () => {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      register(name, mobile, password, referralCode);
-      setLoading(false);
+    const result = await register(name, mobile, password, referralCode);
+    setLoading(false);
+
+    if (result && result.success) {
       navigate('/');
-    }, 600);
+    } else if (result && result.message) {
+      setError(result.message);
+    }
   };
+
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-6 px-4">

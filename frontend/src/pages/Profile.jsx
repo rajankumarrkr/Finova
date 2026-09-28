@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 
 export const Profile = () => {
-  const { user, setUser, setIsSupportOpen, showToast } = useApp();
+  const { user, setUser, setIsSupportOpen, showToast, logout } = useApp();
   const navigate = useNavigate();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -51,8 +51,10 @@ export const Profile = () => {
   };
 
   const handleLogout = () => {
-    showToast('Signed out from current session', 'info');
+    logout();
+    navigate('/login');
   };
+
 
   const menuRows = [
     {

@@ -8,7 +8,7 @@ export const AddBankModal = () => {
   const { isAddBankOpen, setIsAddBankOpen, handleAddBankAccount, user } = useApp();
 
   const [formData, setFormData] = useState({
-    holderName: user.name || 'Rajan Kumar',
+        holderName: user?.name || '',
     bankName: 'HDFC Bank',
     accountNumber: '',
     confirmAccountNumber: '',
@@ -60,7 +60,7 @@ export const AddBankModal = () => {
       handleAddBankAccount(formData);
       setLoading(false);
       setFormData({
-        holderName: user.name || 'Rajan Kumar',
+            holderName: user?.name || '',
         bankName: 'HDFC Bank',
         accountNumber: '',
         confirmAccountNumber: '',
