@@ -15,6 +15,26 @@ export const updateUserStatus = async (id, status) => {
   return response.data;
 };
 
+export const getPlans = async () => {
+  const response = await api.get('/admin/plans');
+  return response.data;
+};
+
+export const createPlan = async (planData) => {
+  const response = await api.post('/admin/plans', planData);
+  return response.data;
+};
+
+export const updatePlan = async (id, planData) => {
+  const response = await api.patch(`/admin/plans/${id}`, planData);
+  return response.data;
+};
+
+export const deletePlan = async (id) => {
+  const response = await api.delete(`/admin/plans/${id}`);
+  return response.data;
+};
+
 export const getDeposits = async (params = {}) => {
   const response = await api.get('/admin/deposits', { params });
   return response.data;
@@ -49,6 +69,10 @@ export const adminService = {
   getDashboard,
   getUsers,
   updateUserStatus,
+  getPlans,
+  createPlan,
+  updatePlan,
+  deletePlan,
   getDeposits,
   updateDepositStatus,
   getWithdrawals,
@@ -58,3 +82,4 @@ export const adminService = {
 };
 
 export default adminService;
+

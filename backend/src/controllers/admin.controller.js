@@ -144,17 +144,71 @@ export const createPlan = async (req, res, next) => {
 
 export const updatePlan = async (req, res, next) => {
   try {
-    const plan = await InvestmentPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    // Recalculate derived fields if relevant fields change
+    if (updateData.dailyEarning && updateData.durationDays) {
+      updateData.scheduledEarnings = updateData.dailyEarning * updateData.durationDays;
+      if (updateData.investmentAmount) {
+        updateData.roi = `${Math.round((updateData.scheduledEarnings / updateData.investmentAmount) * 100)}%`;
+      }
+    }
+    if (updateData.name) {
+      updateData.slug = updateData.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    }
+
+    const plan = await InvestmentPlan.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!plan) return ApiResponse.error(res, 'Plan not found', 'NOT_FOUND', 404);
 
     await AuditLog.create({
       actor: req.user._id,
       action: 'ADMIN_UPDATE_PLAN',
       entity: 'InvestmentPlan',
-      entityId: plan._id.toString()
+      entityId: plan._id.toString(),
+      metadata: updateData
     });
 
     return ApiResponse.success(res, 'Investment plan updated successfully', plan);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPlans = async (req, res, next) => {
+  try {
+    const plans = await InvestmentPlan.find().sort({ investmentAmount: 1 }).lean();
+    return ApiResponse.success(res, 'All investment plans retrieved', plans);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deletePlan = async (req, res, next) => {
+  try {
+    const plan = await InvestmentPlan.findById(req.params.id);
+    if (!plan) return ApiResponse.error(res, 'Plan not found', 'NOT_FOUND', 404);
+
+    // Check if any active investments reference this plan
+    const activeInvestments = await Investment.countDocuments({ plan: req.params.id, status: 'active' });
+    if (activeInvestments > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot delete plan with ${activeInvestments} active investment(s). Deactivate instead.`,
+        'PLAN_HAS_ACTIVE_INVESTMENTS',
+        400
+      );
+    }
+
+    await InvestmentPlan.findByIdAndDelete(req.params.id);
+
+    await AuditLog.create({
+      actor: req.user._id,
+      action: 'ADMIN_DELETE_PLAN',
+      entity: 'InvestmentPlan',
+      entityId: plan._id.toString(),
+      metadata: { name: plan.name, investmentAmount: plan.investmentAmount }
+    });
+
+    return ApiResponse.success(res, 'Investment plan deleted successfully', { id: plan._id.toString() });
   } catch (error) {
     next(error);
   }

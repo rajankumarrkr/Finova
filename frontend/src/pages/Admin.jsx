@@ -23,7 +23,11 @@ import {
   FileImage,
   RefreshCw,
   Lock,
-  Settings
+  Settings,
+  Briefcase,
+  Plus,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 export const Admin = () => {
@@ -59,6 +63,18 @@ export const Admin = () => {
 
   // Screenshot Preview Modal State
   const [previewImage, setPreviewImage] = useState(null);
+
+  // Plans State
+  const [plansList, setPlansList] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [showPlanForm, setShowPlanForm] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [planForm, setPlanForm] = useState({
+    name: '', investmentAmount: '', dailyEarning: '', durationDays: '',
+    badge: 'STARTER', popular: false, color: 'emerald', features: '', description: ''
+  });
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [deletingPlanId, setDeletingPlanId] = useState(null);
 
   // Settings State
   const [settingsData, setSettingsData] = useState({ upiId: '', merchantName: '', qrCodeUrl: '' });
@@ -219,6 +235,106 @@ export const Admin = () => {
     }
   };
 
+  // Fetch Plans
+  const fetchPlans = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingPlans(true);
+    try {
+      const res = await adminService.getPlans();
+      if (res?.success) {
+        setPlansList(res.data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching plans:', e);
+    } finally {
+      setLoadingPlans(false);
+    }
+  }, [isAdmin]);
+
+  // Reset plan form
+  const resetPlanForm = () => {
+    setPlanForm({
+      name: '', investmentAmount: '', dailyEarning: '', durationDays: '',
+      badge: 'STARTER', popular: false, color: 'emerald', features: '', description: ''
+    });
+    setEditingPlan(null);
+    setShowPlanForm(false);
+  };
+
+  // Open edit plan form
+  const openEditPlan = (plan) => {
+    setEditingPlan(plan);
+    setPlanForm({
+      name: plan.name || '',
+      investmentAmount: plan.investmentAmount || '',
+      dailyEarning: plan.dailyEarning || '',
+      durationDays: plan.durationDays || '',
+      badge: plan.badge || 'STARTER',
+      popular: plan.popular || false,
+      color: plan.color || 'emerald',
+      features: (plan.features || []).join(', '),
+      description: plan.description || ''
+    });
+    setShowPlanForm(true);
+  };
+
+  // Create or Update Plan
+  const handleSavePlan = async (e) => {
+    e.preventDefault();
+    if (!planForm.name || !planForm.investmentAmount || !planForm.dailyEarning || !planForm.durationDays) {
+      showToast('Please fill all required fields', 'error');
+      return;
+    }
+    setSavingPlan(true);
+    try {
+      const payload = {
+        name: planForm.name.trim(),
+        investmentAmount: Number(planForm.investmentAmount),
+        dailyEarning: Number(planForm.dailyEarning),
+        durationDays: Number(planForm.durationDays),
+        badge: planForm.badge || 'STARTER',
+        popular: planForm.popular,
+        color: planForm.color || 'emerald',
+        features: planForm.features ? planForm.features.split(',').map(f => f.trim()).filter(Boolean) : [],
+        description: planForm.description.trim()
+      };
+
+      let res;
+      if (editingPlan) {
+        res = await adminService.updatePlan(editingPlan._id || editingPlan.id, payload);
+      } else {
+        res = await adminService.createPlan(payload);
+      }
+
+      if (res?.success) {
+        showToast(editingPlan ? 'Plan updated successfully!' : 'Plan created successfully!', 'success');
+        resetPlanForm();
+        fetchPlans();
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to save plan'), 'error');
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  // Delete Plan
+  const handleDeletePlan = async (planId) => {
+    if (!confirm('Are you sure you want to delete this plan? This cannot be undone.')) return;
+    setDeletingPlanId(planId);
+    try {
+      const res = await adminService.deletePlan(planId);
+      if (res?.success) {
+        showToast('Plan deleted successfully!', 'success');
+        fetchPlans();
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to delete plan'), 'error');
+    } finally {
+      setDeletingPlanId(null);
+    }
+  };
+
   // Initial Load on Admin tab switch
   useEffect(() => {
     if (isAdmin) {
@@ -226,9 +342,10 @@ export const Admin = () => {
       fetchDeposits();
       fetchWithdrawals();
       fetchUsers();
+      fetchPlans();
       fetchSettings();
     }
-  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers, fetchSettings]);
+  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers, fetchPlans, fetchSettings]);
 
   // Approve / Reject Deposit
   const handleDepositAction = async (id, status, utr) => {
@@ -493,6 +610,7 @@ export const Admin = () => {
           { key: 'deposits', icon: ArrowDownLeft, label: 'Deposits', shortLabel: 'Deposits', badge: pendingDepositsCount },
           { key: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals', shortLabel: 'Withdraw', badge: pendingWithdrawalsCount },
           { key: 'users', icon: Users, label: 'Users', shortLabel: 'Users', badge: 0 },
+          { key: 'plans', icon: Briefcase, label: 'Investment Plans', shortLabel: 'Plans', badge: 0 },
           { key: 'settings', icon: Settings, label: 'Settings', shortLabel: 'Settings', badge: 0 }
         ].map(tab => (
           <button
@@ -1044,7 +1162,354 @@ export const Admin = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* Tab 4: Platform Settings                          */}
+      {/* Tab 4: Plans Management                            */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {activeTab === 'plans' && (
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <h2 className="text-sm sm:text-base font-bold text-white font-mono flex items-center gap-2">
+              <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-[#F4D06F]" />
+              <span className="hidden sm:inline">Investment Plans Management</span>
+              <span className="sm:hidden">Plans</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { resetPlanForm(); setShowPlanForm(true); }}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-900/30"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Plan</span>
+              </button>
+              <button
+                onClick={fetchPlans}
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl border border-emerald-500/20"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingPlans ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Add/Edit Plan Form */}
+          {showPlanForm && (
+            <div className="p-4 sm:p-5 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs sm:text-sm font-bold text-[#F4D06F] font-mono flex items-center gap-2">
+                  {editingPlan ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                  <span>{editingPlan ? 'Edit Plan' : 'Create New Plan'}</span>
+                </h3>
+                <button onClick={resetPlanForm} className="p-1 text-[#A7B8AE] hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSavePlan} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Plan Name *</label>
+                    <input
+                      type="text"
+                      value={planForm.name}
+                      onChange={(e) => setPlanForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Gold Plan"
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Investment Amount (₹) *</label>
+                    <input
+                      type="number"
+                      value={planForm.investmentAmount}
+                      onChange={(e) => setPlanForm(p => ({ ...p, investmentAmount: e.target.value }))}
+                      placeholder="5000"
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Daily Earning (₹) *</label>
+                    <input
+                      type="number"
+                      value={planForm.dailyEarning}
+                      onChange={(e) => setPlanForm(p => ({ ...p, dailyEarning: e.target.value }))}
+                      placeholder="100"
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      required
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Duration (Days) *</label>
+                    <input
+                      type="number"
+                      value={planForm.durationDays}
+                      onChange={(e) => setPlanForm(p => ({ ...p, durationDays: e.target.value }))}
+                      placeholder="30"
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                      required
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Badge</label>
+                    <select
+                      value={planForm.badge}
+                      onChange={(e) => setPlanForm(p => ({ ...p, badge: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      {['STARTER', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'ELITE', 'VIP'].map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Color Theme</label>
+                    <select
+                      value={planForm.color}
+                      onChange={(e) => setPlanForm(p => ({ ...p, color: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      {['emerald', 'amber', 'rose', 'violet', 'blue', 'cyan', 'orange', 'pink'].map(c => (
+                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Features (comma separated)</label>
+                  <input
+                    type="text"
+                    value={planForm.features}
+                    onChange={(e) => setPlanForm(p => ({ ...p, features: e.target.value }))}
+                    placeholder="Daily Returns, Capital Safety, 24/7 Support"
+                    className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase mb-1">Description</label>
+                  <textarea
+                    value={planForm.description}
+                    onChange={(e) => setPlanForm(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Brief plan description..."
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#0A261A] border border-emerald-500/20 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={planForm.popular}
+                      onChange={(e) => setPlanForm(p => ({ ...p, popular: e.target.checked }))}
+                      className="w-3.5 h-3.5 accent-emerald-500"
+                    />
+                    <span className="text-[11px] text-[#A7B8AE] font-medium">Mark as Popular</span>
+                  </label>
+                </div>
+
+                {/* Auto-calculated Preview */}
+                {planForm.investmentAmount && planForm.dailyEarning && planForm.durationDays && (
+                  <div className="p-3 bg-[#0A261A] rounded-lg border border-emerald-500/16 text-[10px] text-[#A7B8AE] space-y-1">
+                    <p className="font-semibold text-[#F4D06F] text-[11px]">Preview Calculations:</p>
+                    <p>Scheduled Earnings: <span className="text-emerald-400 font-mono font-bold">₹{(Number(planForm.dailyEarning) * Number(planForm.durationDays)).toLocaleString('en-IN')}</span></p>
+                    <p>ROI: <span className="text-emerald-400 font-mono font-bold">{Math.round((Number(planForm.dailyEarning) * Number(planForm.durationDays) / Number(planForm.investmentAmount)) * 100)}%</span></p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={resetPlanForm}
+                    className="px-4 py-2 bg-[#0A261A] text-[#A7B8AE] hover:text-white rounded-lg text-xs font-semibold border border-emerald-500/20 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingPlan}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-900/30 disabled:opacity-50"
+                  >
+                    {savingPlan ? (
+                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{editingPlan ? 'Update Plan' : 'Create Plan'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-500/16">
+            <table className="w-full text-left text-xs text-[#A7B8AE]">
+              <thead className="bg-[#061F15] text-[10px] uppercase font-semibold text-[#F4D06F]">
+                <tr>
+                  <th className="p-3">Plan Name</th>
+                  <th className="p-3">Investment</th>
+                  <th className="p-3">Daily Earning</th>
+                  <th className="p-3">Duration</th>
+                  <th className="p-3">Total ROI</th>
+                  <th className="p-3">Badge</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-emerald-500/10">
+                {loadingPlans ? (
+                  <tr>
+                    <td colSpan="8" className="p-8 text-center text-xs">Loading plans...</td>
+                  </tr>
+                ) : plansList.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="p-8 text-center text-xs">No investment plans found. Create one!</td>
+                  </tr>
+                ) : (
+                  plansList.map((p) => (
+                    <tr key={p._id || p.id} className="hover:bg-[#061F15]/60 transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-white flex items-center gap-1.5">
+                          {p.name}
+                          {p.popular && <Sparkles className="w-3 h-3 text-[#F4D06F]" />}
+                        </div>
+                        {p.description && <div className="text-[10px] text-[#A7B8AE] truncate max-w-[200px]">{p.description}</div>}
+                      </td>
+                      <td className="p-3 font-mono font-bold text-[#F4D06F]">₹{p.investmentAmount?.toLocaleString('en-IN')}</td>
+                      <td className="p-3 font-mono text-emerald-400">₹{p.dailyEarning?.toLocaleString('en-IN')}/day</td>
+                      <td className="p-3 font-mono text-white">{p.durationDays} days</td>
+                      <td className="p-3">
+                        <div className="font-mono text-emerald-400">₹{p.scheduledEarnings?.toLocaleString('en-IN')}</div>
+                        <div className="text-[10px] text-amber-400">{p.roi}</div>
+                      </td>
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 bg-amber-400/20 border border-amber-400/30 text-[#F4D06F] rounded-md text-[10px] font-bold">
+                          {p.badge}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          p.status === 'active'
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        }`}>
+                          {(p.status || 'active').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => openEditPlan(p)}
+                            className="px-2.5 py-1.5 bg-[#123A29] hover:bg-emerald-800/60 border border-emerald-500/30 text-emerald-300 rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            disabled={deletingPlanId === (p._id || p.id)}
+                            onClick={() => handleDeletePlan(p._id || p.id)}
+                            className="px-2.5 py-1.5 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {deletingPlanId === (p._id || p.id) ? (
+                              <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {loadingPlans ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">Loading plans...</div>
+            ) : plansList.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">No investment plans found. Create one!</div>
+            ) : (
+              plansList.map((p) => (
+                <div key={p._id || p.id} className="bg-[#061F15] border border-emerald-500/16 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                        {p.name}
+                        {p.popular && <Sparkles className="w-3 h-3 text-[#F4D06F]" />}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="px-1.5 py-0.5 bg-amber-400/20 border border-amber-400/30 text-[#F4D06F] rounded text-[9px] font-bold">{p.badge}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                          p.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        }`}>{(p.status || 'active').toUpperCase()}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono font-bold text-[#F4D06F] text-sm">₹{p.investmentAmount?.toLocaleString('en-IN')}</div>
+                      <div className="text-[10px] text-amber-400 font-mono">{p.roi}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-[10px] bg-[#0A261A] rounded-lg px-2.5 py-2">
+                    <div>
+                      <span className="text-[#A7B8AE]">Daily</span>
+                      <div className="font-mono font-bold text-emerald-400">₹{p.dailyEarning?.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <span className="text-[#A7B8AE]">Duration</span>
+                      <div className="font-mono font-bold text-white">{p.durationDays}d</div>
+                    </div>
+                    <div>
+                      <span className="text-[#A7B8AE]">Total</span>
+                      <div className="font-mono font-bold text-emerald-400">₹{p.scheduledEarnings?.toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+
+                  {p.description && (
+                    <p className="text-[10px] text-[#A7B8AE] leading-snug">{p.description}</p>
+                  )}
+
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <button
+                      onClick={() => openEditPlan(p)}
+                      className="px-2.5 py-1.5 bg-[#123A29] hover:bg-emerald-800/60 border border-emerald-500/30 text-emerald-300 rounded-lg text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      disabled={deletingPlanId === (p._id || p.id)}
+                      onClick={() => handleDeletePlan(p._id || p.id)}
+                      className="px-2.5 py-1.5 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 rounded-lg text-[10px] font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    >
+                      {deletingPlanId === (p._id || p.id) ? (
+                        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab 5: Platform Settings                          */}
       {/* ═══════════════════════════════════════════════════ */}
       {activeTab === 'settings' && (
         <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-4 sm:space-y-6">

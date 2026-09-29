@@ -5,6 +5,8 @@ import {
   updateUserStatus,
   createPlan,
   updatePlan,
+  getPlans,
+  deletePlan,
   getWithdrawals,
   updateWithdrawalStatus,
   getDeposits,
@@ -23,8 +25,10 @@ router.get('/dashboard', getAdminDashboard);
 router.get('/users', getUsers);
 router.patch('/users/:id/status', updateUserStatus);
 
+router.get('/plans', getPlans);
 router.post('/plans', createPlan);
 router.patch('/plans/:id', updatePlan);
+router.delete('/plans/:id', deletePlan);
 
 router.get('/deposits', getDeposits);
 router.patch('/deposits/:id/status', updateDepositStatus);
@@ -36,3 +40,4 @@ router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
 
 export default router;
+
