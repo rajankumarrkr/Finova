@@ -14,8 +14,8 @@ import {
   Check,
   X,
   Eye,
+  EyeOff,
   LogOut,
-  Sparkles,
   AlertCircle,
   Clock,
   CheckCircle2,
@@ -34,8 +34,9 @@ export const Admin = () => {
   const { user, setUser, isAuthenticated, setIsAuthenticated, login, refreshAppData, showToast } = useApp();
 
   // Admin Login State
-  const [adminIdentifier, setAdminIdentifier] = useState('admin@finova.app');
-  const [adminPassword, setAdminPassword] = useState('admin123');
+  const [adminIdentifier, setAdminIdentifier] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
@@ -110,12 +111,6 @@ export const Admin = () => {
     }
   };
 
-  // Quick fill admin credentials for testing
-  const handleQuickFillAdmin = () => {
-    setAdminIdentifier('admin@finova.app');
-    setAdminPassword('admin123');
-    setLoginError('');
-  };
 
   // Fetch Admin Metrics & Data
   const fetchAdminMetrics = useCallback(async () => {
@@ -460,33 +455,50 @@ export const Admin = () => {
           )}
 
           {/* Admin Login Form */}
-          <form onSubmit={handleAdminLogin} className="space-y-3.5 sm:space-y-4">
+          <form onSubmit={handleAdminLogin} autoComplete="off" className="space-y-3.5 sm:space-y-4">
             <div>
-              <label className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
+              <label htmlFor="admin_identifier" className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
                 Admin Mobile / Email
               </label>
               <input
                 type="text"
+                id="admin_identifier"
+                name="admin_identifier"
+                autoComplete="off"
                 value={adminIdentifier}
                 onChange={(e) => setAdminIdentifier(e.target.value)}
-                placeholder="admin@finova.app"
+                placeholder="Enter admin mobile or email"
                 className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
+              <label htmlFor="admin_security_key" className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
                 Admin Security Password
               </label>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? "text" : "password"}
+                  id="admin_security_key"
+                  name="admin_security_key"
+                  autoComplete="new-password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 pr-10 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#71857A] hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showAdminPassword ? "Hide password" : "Show password"}
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -502,16 +514,6 @@ export const Admin = () => {
                   <span>Access Admin Dashboard</span>
                 </>
               )}
-            </button>
-
-            {/* Quick Fill Button */}
-            <button
-              type="button"
-              onClick={handleQuickFillAdmin}
-              className="w-full py-2 text-xs text-[#F4D06F] hover:underline flex items-center justify-center gap-1.5 font-medium cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Fill Demo Admin Credentials</span>
             </button>
           </form>
         </div>
@@ -537,7 +539,7 @@ export const Admin = () => {
                 SUPER ADMIN
               </span>
             </div>
-            <p className="text-[10px] sm:text-xs text-[#A7B8AE] truncate">{user?.email || 'admin@finova.app'}</p>
+            <p className="text-[10px] sm:text-xs text-[#A7B8AE] truncate">{user?.email || 'Administrator'}</p>
           </div>
         </div>
 
