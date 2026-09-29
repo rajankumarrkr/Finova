@@ -1,11 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { PlanCard } from '../components/cards/PlanCard';
 import { investmentPlansList } from '../data/mockData';
-import { ShieldCheck, Info, Sparkles } from 'lucide-react';
+import { planService } from '../services/planService';
+import { ShieldCheck, Info, Sparkles, Loader2 } from 'lucide-react';
 
 export const Plans = () => {
-  const { openInvestModal } = useApp();
+  const { openInvestModal, plans: appPlans } = useApp();
+  const [plans, setPlans] = useState(appPlans || []);
+  const [loading, setLoading] = useState(!appPlans || appPlans.length === 0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPlans = async () => {
+      try {
+        const res = await planService.getPlans();
+        if (isMounted && res?.success && Array.isArray(res.data) && res.data.length > 0) {
+          setPlans(res.data);
+        } else if (isMounted && (!appPlans || appPlans.length === 0)) {
+          setPlans(investmentPlansList);
+        }
+      } catch (err) {
+        if (isMounted && (!appPlans || appPlans.length === 0)) {
+          setPlans(investmentPlansList);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchPlans();
+    return () => {
+      isMounted = false;
+    };
+  }, [appPlans]);
+
+  const displayPlans = plans.length > 0 ? plans : investmentPlansList;
 
   return (
     <div className="space-y-6">
@@ -25,16 +55,41 @@ export const Plans = () => {
         </div>
       </div>
 
-      {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
-        {investmentPlansList.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            onInvest={openInvestModal}
-          />
-        ))}
-      </div>
+      {/* Plans Grid / Loading State */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-96 rounded-3xl bg-slate-900/60 border border-slate-800 p-6 flex flex-col justify-between animate-pulse">
+              <div className="space-y-4">
+                <div className="h-6 w-24 bg-slate-800 rounded-full" />
+                <div className="h-8 w-40 bg-slate-800 rounded-xl" />
+                <div className="h-12 w-full bg-slate-800 rounded-2xl" />
+              </div>
+              <div className="h-12 w-full bg-slate-800 rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+          {displayPlans.map((plan) => {
+            const normalizedPlan = {
+              ...plan,
+              id: plan._id || plan.id,
+              badge: plan.badge || 'ACTIVE',
+              roi: plan.roi || '99%',
+              scheduledEarnings: plan.scheduledEarnings || (plan.dailyEarning * plan.durationDays),
+              color: plan.color || 'emerald',
+            };
+            return (
+              <PlanCard
+                key={normalizedPlan.id}
+                plan={normalizedPlan}
+                onInvest={openInvestModal}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Financial Disclosure */}
       <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-start gap-3">

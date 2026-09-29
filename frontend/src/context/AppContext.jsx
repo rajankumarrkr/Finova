@@ -1,260 +1,72 @@
-import React, { createContext, useContext, useState } from 'react';
-import {
-  initialUserData,
-  activeInvestmentsList,
-  initialTransactionsList,
-  initialBankAccounts,
-  initialNotificationsList,
-  investmentPlansList
-} from '../data/mockData';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import * as authService from '../services/authService';
+import * as dashboardService from '../services/dashboardService';
+import * as planService from '../services/planService';
+import * as investmentService from '../services/investmentService';
+import * as earningService from '../services/earningService';
+import * as referralService from '../services/referralService';
+import * as transactionService from '../services/transactionService';
+import * as withdrawalService from '../services/withdrawalService';
+import * as bankService from '../services/bankService';
+import * as notificationService from '../services/notificationService';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const AppContext = createContext();
 
+const initialUserData = {
+  id: '',
+  name: 'Investor',
+  email: '',
+  phone: '',
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  referralCode: '',
+  kycStatus: 'Verified',
+  balances: {
+    totalBalance: 0,
+    availableBalance: 0,
+    withdrawableBalance: 0,
+    totalInvested: 0,
+    totalEarnings: 0,
+    todayEarnings: 0,
+    referralEarnings: 0,
+  },
+  stats: {
+    lifetimeInvested: 0,
+    activeInvestmentsCount: 0,
+    completedPlansCount: 0,
+  },
+  memberSince: '2026',
+};
+
 export const AppProvider = ({ children }) => {
-  // LocalStorage persistence helpers
-  const getInitialUser = () => {
-    try {
-      const saved = localStorage.getItem('finova_user');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return initialUserData;
-  };
-
-  const getInitialRegisteredUsers = () => {
-    try {
-      const saved = localStorage.getItem('finova_registered_users');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [
-      {
-        name: "Rajan Kumar",
-        phone: "9876543210",
-        email: "rajan@example.com",
-        password: "password123",
-        referralCode: "RAJAN50"
-      }
-    ];
-  };
-
-  const [user, setUser] = useState(getInitialUser);
+  const [user, setUser] = useState(initialUserData);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('finova_auth') === 'true' || !!localStorage.getItem('finova_token');
+    return !!localStorage.getItem('finova_token');
   });
-  const [registeredUsers, setRegisteredUsers] = useState(getInitialRegisteredUsers);
-  const [activeInvestments, setActiveInvestments] = useState(activeInvestmentsList);
-  const [transactions, setTransactions] = useState(initialTransactionsList);
-  const [bankAccounts, setBankAccounts] = useState(initialBankAccounts);
-  const [notifications, setNotifications] = useState(initialNotificationsList);
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
 
-  // Sync user profile from backend on reload if token exists
-  React.useEffect(() => {
-    const fetchMe = async () => {
-      const token = localStorage.getItem('finova_token');
-      if (!token) return;
-      try {
-        const res = await fetch('http://localhost:5000/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (res.ok && data.success && data.data?.user) {
-          const apiUser = data.data.user;
-          const updatedUser = {
-            ...initialUserData,
-            id: apiUser.id || apiUser._id,
-            name: apiUser.name,
-            email: apiUser.email,
-            phone: apiUser.phone,
-            referralCode: apiUser.referralCode,
-            balances: apiUser.balances || initialUserData.balances
-          };
-          setUser(updatedUser);
-          setIsAuthenticated(true);
-          localStorage.setItem('finova_user', JSON.stringify(updatedUser));
-          localStorage.setItem('finova_auth', 'true');
-        } else {
-          // Token is invalid or expired, clear invalid token so it doesn't overwrite future logins
-          localStorage.removeItem('finova_token');
-        }
-      } catch (err) {
-        // Network error - keep local saved session intact
-      }
-    };
-    fetchMe();
+  // Lists
+  const [activeInvestments, setActiveInvestments] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [plans, setPlans] = useState([]);
+
+  // Toast State
+  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
+
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'info' });
+    }, 4000);
   }, []);
 
-  // Authentication Handlers
-  const login = async (mobile, password) => {
-    // 1. Try Backend API first if backend is live
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: mobile, password })
-      });
-      const data = await response.json();
+  const closeToast = useCallback(() => {
+    setToast({ show: false, message: '', type: 'info' });
+  }, []);
 
-      if (response.ok && data.success) {
-        if (data.data?.accessToken) {
-          localStorage.setItem('finova_token', data.data.accessToken);
-        }
-        const apiUser = data.data?.user;
-        let updatedUser = user;
-        if (apiUser) {
-          updatedUser = {
-            ...initialUserData,
-            id: apiUser.id || apiUser._id,
-            name: apiUser.name,
-            email: apiUser.email,
-            phone: apiUser.phone,
-            referralCode: apiUser.referralCode,
-            balances: apiUser.balances || initialUserData.balances
-          };
-          setUser(updatedUser);
-          localStorage.setItem('finova_user', JSON.stringify(updatedUser));
-          localStorage.setItem('finova_auth', 'true');
-        }
-        setIsAuthenticated(true);
-        showToast(`Welcome back, ${apiUser?.name?.split(' ')[0] || 'User'}!`, 'success');
-        return { success: true };
-      } else if (response.status === 401 || response.status === 400 || response.status === 404) {
-        return { success: false, message: data.message || 'Mobile number is not registered. Please register first.' };
-      }
-    } catch (err) {
-      // Backend not reached or offline, fallback to frontend state verification
-    }
-
-    // 2. Local State Verification (Strict registration check)
-    const cleanMobile = mobile.replace(/\D/g, '');
-    const foundUser = registeredUsers.find(u => u.phone.replace(/\D/g, '') === cleanMobile);
-
-    if (!foundUser) {
-      return {
-        success: false,
-        message: `Mobile number (+91 ${cleanMobile}) is NOT registered. Please click 'Register Now' to create an account first.`
-      };
-    }
-
-    if (foundUser.password !== password) {
-      return {
-        success: false,
-        message: 'Incorrect password! Please check your password and try again.'
-      };
-    }
-
-    const updatedUser = {
-      ...initialUserData,
-      id: foundUser.phone,
-      name: foundUser.name,
-      email: foundUser.email || `${cleanMobile}@example.com`,
-      phone: `+91 ${cleanMobile}`,
-      referralCode: foundUser.referralCode || 'REF' + Math.floor(10 + Math.random() * 89)
-    };
-
-    // Remove any stale backend token from previous session
-    localStorage.removeItem('finova_token');
-    setUser(updatedUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('finova_user', JSON.stringify(updatedUser));
-    localStorage.setItem('finova_auth', 'true');
-    showToast(`Welcome back, ${foundUser.name.split(' ')[0]}!`, 'success');
-    return { success: true };
-  };
-
-  const register = async (name, mobile, password, referralCode) => {
-    const cleanMobile = mobile.replace(/\D/g, '');
-
-    // 1. Try Backend API
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email: `${cleanMobile}@finova.app`,
-          phone: `+91 ${cleanMobile}`,
-          password,
-          referralCode
-        })
-      });
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        if (data.data?.accessToken) {
-          localStorage.setItem('finova_token', data.data.accessToken);
-        }
-        const apiUser = data.data?.user;
-        const updatedUser = {
-          ...initialUserData,
-          id: apiUser?.id || apiUser?._id,
-          name: apiUser?.name || name,
-          phone: apiUser?.phone || `+91 ${cleanMobile}`,
-          email: apiUser?.email || `${cleanMobile}@finova.app`,
-          referralCode: apiUser?.referralCode || (referralCode ? referralCode.toUpperCase() : "REG" + Math.floor(10 + Math.random() * 89))
-        };
-        setUser(updatedUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('finova_user', JSON.stringify(updatedUser));
-        localStorage.setItem('finova_auth', 'true');
-        showToast(`Account created successfully! Welcome to Finova, ${name.split(' ')[0]}.`, 'success');
-        return { success: true };
-      } else if (!data.success && data.message) {
-        return { success: false, message: data.message };
-      }
-    } catch (err) {
-      // Fallback local registration
-    }
-
-    // 2. Check if mobile already exists locally
-    const existing = registeredUsers.find(u => u.phone.replace(/\D/g, '') === cleanMobile);
-    if (existing) {
-      return {
-        success: false,
-        message: `Mobile number (+91 ${cleanMobile}) is already registered! Please sign in instead.`
-      };
-    }
-
-    const newUserObj = {
-      name,
-      phone: cleanMobile,
-      email: `${cleanMobile}@finova.app`,
-      password,
-      referralCode: referralCode ? referralCode.toUpperCase() : "REG" + Math.floor(10 + Math.random() * 89)
-    };
-
-    const newRegisteredList = [...registeredUsers, newUserObj];
-    setRegisteredUsers(newRegisteredList);
-    localStorage.setItem('finova_registered_users', JSON.stringify(newRegisteredList));
-
-    const updatedUser = {
-      ...initialUserData,
-      id: cleanMobile,
-      name,
-      phone: `+91 ${cleanMobile}`,
-      referralCode: newUserObj.referralCode
-    };
-
-    // Remove any stale backend token from previous session
-    localStorage.removeItem('finova_token');
-    setUser(updatedUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('finova_user', JSON.stringify(updatedUser));
-    localStorage.setItem('finova_auth', 'true');
-    showToast(`Account created successfully! Welcome to Finova, ${name.split(' ')[0]}.`, 'success');
-    return { success: true };
-  };
-
-  const logout = () => {
-    localStorage.removeItem('finova_user');
-    localStorage.removeItem('finova_token');
-    localStorage.removeItem('finova_auth');
-    setUser(initialUserData);
-    setIsAuthenticated(false);
-    showToast('Logged out of session', 'info');
-  };
-
-
-
-  
   // Modals state
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -263,101 +75,291 @@ export const AppProvider = ({ children }) => {
   const [isAddBankOpen, setIsAddBankOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  
-  // Toast Notification state
-  const [toast, setToast] = useState({ show: false, message: '', type: 'info' });
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: '', type: 'info' });
-    }, 4000);
+  // Fetch all user domain data from API
+  const refreshAppData = useCallback(async () => {
+    if (!localStorage.getItem('finova_token')) return;
+
+    try {
+      const [
+        meRes,
+        dashRes,
+        invRes,
+        txnRes,
+        bankRes,
+        notifRes,
+        plansRes,
+      ] = await Promise.allSettled([
+        authService.getMe(),
+        dashboardService.getDashboard(),
+        investmentService.getInvestments(),
+        transactionService.getTransactions(),
+        bankService.getBankAccounts(),
+        notificationService.getNotifications(),
+        planService.getPlans(),
+      ]);
+
+      // 1. Authenticated User Profile
+      if (meRes.status === 'fulfilled' && meRes.value?.success && meRes.value?.data?.user) {
+        const u = meRes.value.data.user;
+        const b = u.balances || {};
+        setUser((prev) => ({
+          ...prev,
+          id: u.id || u._id,
+          name: u.name || prev.name,
+          email: u.email || prev.email,
+          phone: u.phone || prev.phone,
+          avatar: u.avatar || prev.avatar,
+          referralCode: u.referralCode || prev.referralCode,
+          kycStatus: u.kycStatus || 'Verified',
+          memberSince: u.memberSince ? new Date(u.memberSince).getFullYear().toString() : '2026',
+          balances: {
+            availableBalance: b.availableBalance || 0,
+            withdrawableBalance: b.withdrawableBalance || b.availableBalance || 0,
+            totalInvested: b.totalInvested || 0,
+            totalEarnings: b.totalEarnings || 0,
+            totalReferralEarnings: b.totalReferralEarnings || 0,
+            referralEarnings: b.totalReferralEarnings || 0,
+            todayEarnings: prev.balances?.todayEarnings || 0,
+            totalBalance: (b.availableBalance || 0) + (b.totalInvested || 0),
+          },
+        }));
+      }
+
+      // 2. Dashboard Metrics
+      if (dashRes.status === 'fulfilled' && dashRes.value?.success && dashRes.value?.data) {
+        const d = dashRes.value.data;
+        setDashboardData(d);
+        setUser((prev) => ({
+          ...prev,
+          balances: {
+            ...prev.balances,
+            totalBalance: d.totalBalance ?? (d.availableBalance + d.totalInvested),
+            availableBalance: d.availableBalance ?? prev.balances.availableBalance,
+            totalInvested: d.totalInvested ?? prev.balances.totalInvested,
+            totalEarnings: d.totalEarnings ?? prev.balances.totalEarnings,
+            todayEarnings: d.todayEarnings ?? prev.balances.todayEarnings,
+          },
+          stats: {
+            ...prev.stats,
+            activeInvestmentsCount: d.activeInvestments ?? prev.stats.activeInvestmentsCount,
+            lifetimeInvested: d.totalInvested ?? prev.stats.lifetimeInvested,
+          },
+        }));
+      }
+
+      // 3. Investments
+      if (invRes.status === 'fulfilled' && invRes.value?.success && Array.isArray(invRes.value.data)) {
+        const formatted = invRes.value.data.map((inv) => ({
+          id: inv._id || inv.id,
+          planName: inv.planName || inv.plan?.name || 'Investment Plan',
+          badge: inv.badge || inv.plan?.badge || 'ACTIVE',
+          amount: inv.amount,
+          dailyEarning: inv.dailyEarning,
+          durationDays: inv.durationDays,
+          completedDays: inv.completedDays || 0,
+          totalEarnedSoFar: inv.totalEarned || 0,
+          nextEarning: inv.nextEarningAt ? new Date(inv.nextEarningAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '10:00 AM',
+          startDate: inv.startDate ? new Date(inv.startDate).toLocaleDateString() : 'Today',
+          endDate: inv.endDate ? new Date(inv.endDate).toLocaleDateString() : '',
+          color: inv.color || inv.plan?.color || 'emerald',
+          status: inv.status,
+        }));
+        setActiveInvestments(formatted);
+      }
+
+      // 4. Transactions
+      if (txnRes.status === 'fulfilled' && txnRes.value?.success) {
+        const rawList = txnRes.value.data?.transactions || (Array.isArray(txnRes.value.data) ? txnRes.value.data : []);
+        const formattedTxns = rawList.map((t) => {
+          let category = 'Investments';
+          if (t.type === 'daily_earning' || t.type === 'earnings') category = 'Earnings';
+          else if (t.type === 'withdrawal' || t.type === 'withdrawals') category = 'Withdrawals';
+          else if (t.type === 'referral_bonus' || t.type === 'referrals') category = 'Referrals';
+
+          return {
+            id: t._id || t.transactionId,
+            type: t.type,
+            title: t.reference || t.type?.replace('_', ' ')?.toUpperCase() || 'Transaction',
+            amount: t.amount,
+            isPositive: t.direction === 'credit',
+            date: t.createdAt ? new Date(t.createdAt).toLocaleString() : 'Recently',
+            rawDate: t.createdAt,
+            status: t.status ? t.status.charAt(0).toUpperCase() + t.status.slice(1) : 'Completed',
+            category,
+            reference: t.transactionId || t.reference || '',
+          };
+        });
+        setTransactions(formattedTxns);
+      }
+
+      // 5. Bank Accounts
+      if (bankRes.status === 'fulfilled' && bankRes.value?.success && Array.isArray(bankRes.value.data)) {
+        const formattedBanks = bankRes.value.data.map((b) => ({
+          id: b.id || b._id,
+          bankName: b.bankName,
+          accountNumber: b.accountNumber,
+          holderName: b.accountHolderName,
+          ifscCode: b.ifsc,
+          status: b.isVerified ? 'Verified' : 'Pending',
+          isDefault: !!b.isPrimary,
+        }));
+        setBankAccounts(formattedBanks);
+      }
+
+      // 6. Notifications
+      if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.data)) {
+        const formattedNotifs = notifRes.value.data.map((n) => ({
+          id: n._id || n.id,
+          title: n.title,
+          description: n.message || n.description,
+          timestamp: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+          read: n.isRead ?? n.read ?? false,
+          category: n.category || 'General',
+          iconType: n.type || n.iconType || 'dollar',
+        }));
+        setNotifications(formattedNotifs);
+      }
+
+      // 7. Investment Plans
+      if (plansRes.status === 'fulfilled' && plansRes.value?.success && Array.isArray(plansRes.value.data)) {
+        setPlans(plansRes.value.data);
+      }
+    } catch (e) {
+      console.error('Error refreshing app data from API:', e);
+    }
+  }, []);
+
+  // Initial Check Me on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('finova_token');
+      if (token) {
+        try {
+          setIsAuthenticated(true);
+          await refreshAppData();
+        } catch (err) {
+          localStorage.removeItem('finova_token');
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+      setLoading(false);
+    };
+
+    initAuth();
+  }, [refreshAppData]);
+
+  // Listen for automatic logout events triggered by Axios Interceptor
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      setIsAuthenticated(false);
+      setUser(initialUserData);
+      showToast('Session expired. Please sign in again.', 'error');
+    };
+    window.addEventListener('finova_auth_logout', handleAuthLogout);
+    return () => window.removeEventListener('finova_auth_logout', handleAuthLogout);
+  }, [showToast]);
+
+  // Authentication Handlers
+  const login = async (identifier, password) => {
+    try {
+      const res = await authService.login({ identifier, password });
+      if (res?.success && res?.data?.accessToken) {
+        localStorage.setItem('finova_token', res.data.accessToken);
+        setIsAuthenticated(true);
+        const name = res.data.user?.name ? res.data.user.name.split(' ')[0] : 'User';
+        showToast(`Welcome back, ${name}!`, 'success');
+        await refreshAppData();
+        return { success: true };
+      }
+      return { success: false, message: res?.message || 'Login failed' };
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Mobile number or password is incorrect');
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
   };
 
-  const closeToast = () => {
-    setToast({ show: false, message: '', type: 'info' });
+  const register = async (name, mobile, password, referralCode) => {
+    try {
+      const cleanMobile = mobile.replace(/\D/g, '');
+      const userData = {
+        name,
+        email: `${cleanMobile}@finova.app`,
+        phone: `+91 ${cleanMobile}`,
+        password,
+        ...(referralCode ? { referralCode: referralCode.trim() } : {}),
+      };
+
+      const res = await authService.register(userData);
+      if (res?.success && res?.data?.accessToken) {
+        localStorage.setItem('finova_token', res.data.accessToken);
+        setIsAuthenticated(true);
+        showToast(`Account created successfully! Welcome to Finova, ${name.split(' ')[0]}.`, 'success');
+        await refreshAppData();
+        return { success: true };
+      }
+      return { success: false, message: res?.message || 'Registration failed' };
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Failed to create account. Please try again.');
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      // Ignore network errors on logout
+    } finally {
+      localStorage.removeItem('finova_token');
+      localStorage.removeItem('finova_user');
+      localStorage.removeItem('finova_auth');
+      setIsAuthenticated(false);
+      setUser(initialUserData);
+      showToast('Logged out of session', 'info');
+    }
   };
 
   // Action: Open Invest Modal
   const openInvestModal = (plan) => {
-    setSelectedPlanForInvest(plan || investmentPlansList[0]);
+    if (plan) {
+      setSelectedPlanForInvest(plan);
+    } else if (plans && plans.length > 0) {
+      setSelectedPlanForInvest(plans[0]);
+    }
     setIsInvestOpen(true);
   };
 
   // Action: Confirm Investment
-  const handleInvestSubmit = (plan, amount) => {
-    if (user.balances.availableBalance < amount) {
-      showToast(`Insufficient available balance! Please deposit funds first.`, 'error');
+  const handleInvestSubmit = async (plan, amount) => {
+    const planId = plan._id || plan.id;
+    if (!planId) {
+      showToast('Invalid investment plan', 'error');
       return false;
     }
 
-    // Update balances
-    const newAvailable = user.balances.availableBalance - amount;
-    const newTotalInvested = user.balances.totalInvested + amount;
-    setUser(prev => ({
-      ...prev,
-      balances: {
-        ...prev.balances,
-        availableBalance: newAvailable,
-        totalInvested: newTotalInvested,
-        totalBalance: prev.balances.totalBalance // balance reallocated to active investment
-      },
-      stats: {
-        ...prev.stats,
-        activeInvestmentsCount: prev.stats.activeInvestmentsCount + 1,
-        lifetimeInvested: prev.stats.lifetimeInvested + amount
+    try {
+      const res = await investmentService.createInvestment(planId);
+      if (res?.success) {
+        showToast(`Successfully invested ₹${amount?.toLocaleString()} in ${plan.name}!`, 'success');
+        setIsInvestOpen(false);
+        await refreshAppData();
+        return true;
       }
-    }));
-
-    // Add Active Investment
-    const newInvestment = {
-      id: `INV-${Math.floor(100 + Math.random() * 900)}`,
-      planName: plan.name,
-      badge: plan.badge,
-      amount: amount,
-      dailyEarning: plan.dailyEarning,
-      durationDays: plan.durationDays,
-      completedDays: 1,
-      totalEarnedSoFar: plan.dailyEarning,
-      nextEarning: "Tomorrow, 10:00 AM",
-      startDate: "Today",
-      color: plan.color
-    };
-    setActiveInvestments(prev => [newInvestment, ...prev]);
-
-    // Add Transaction
-    const newTxn = {
-      id: `TXN-${Math.floor(9000 + Math.random() * 999)}`,
-      type: "investment",
-      title: `Investment — ${plan.name}`,
-      amount: amount,
-      isPositive: false,
-      date: "Just now",
-      rawDate: new Date().toISOString(),
-      status: "Completed",
-      category: "Investments",
-      reference: `${newInvestment.id} Activation`
-    };
-    setTransactions(prev => [newTxn, ...prev]);
-
-    // Add Notification
-    const newNotif = {
-      id: `NOTIF-${Date.now()}`,
-      title: `${plan.name} Activated`,
-      description: `₹${amount.toLocaleString()} has been invested in ${plan.name}. Daily earning ₹${plan.dailyEarning} scheduled!`,
-      timestamp: "Just now",
-      read: false,
-      category: "Investment",
-      iconType: "trending"
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    showToast(`Successfully invested ₹${amount.toLocaleString()} in ${plan.name}!`, 'success');
-    setIsInvestOpen(false);
-    return true;
+      showToast(res?.message || 'Investment failed', 'error');
+      return false;
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Failed to activate investment plan');
+      showToast(msg, 'error');
+      return false;
+    }
   };
 
-  // Action: Confirm Deposit
+  // Action: Confirm Deposit (Simulated / Payment API)
   const handleDepositSubmit = (amount, paymentMethod) => {
     const depAmount = parseFloat(amount);
     if (!depAmount || depAmount <= 0) {
@@ -365,133 +367,118 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    setUser(prev => ({
+    setUser((prev) => ({
       ...prev,
       balances: {
         ...prev.balances,
         totalBalance: prev.balances.totalBalance + depAmount,
         availableBalance: prev.balances.availableBalance + depAmount,
-        withdrawableBalance: prev.balances.withdrawableBalance + depAmount
-      }
+        withdrawableBalance: prev.balances.withdrawableBalance + depAmount,
+      },
     }));
 
-    const newTxn = {
-      id: `TXN-${Math.floor(9000 + Math.random() * 999)}`,
-      type: "deposit",
-      title: `${paymentMethod.toUpperCase()} Deposit`,
-      amount: depAmount,
-      isPositive: true,
-      date: "Just now",
-      rawDate: new Date().toISOString(),
-      status: "Completed",
-      category: "Investments",
-      reference: `Ref: ${paymentMethod}-${Math.floor(100000 + Math.random() * 900000)}`
-    };
-    setTransactions(prev => [newTxn, ...prev]);
-
-    const newNotif = {
-      id: `NOTIF-${Date.now()}`,
-      title: "Deposit Successful",
-      description: `₹${depAmount.toLocaleString()} added to your available balance via ${paymentMethod.toUpperCase()}.`,
-      timestamp: "Just now",
-      read: false,
-      category: "Deposit",
-      iconType: "dollar"
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    showToast(`Deposit of ₹${depAmount.toLocaleString()} completed successfully!`, 'success');
+    showToast(`Deposit of ₹${depAmount.toLocaleString()} added to wallet!`, 'success');
     setIsDepositOpen(false);
     return true;
   };
 
   // Action: Confirm Withdrawal
-  const handleWithdrawSubmit = (amount, bankAccountId) => {
+  const handleWithdrawSubmit = async (amount, bankAccountId) => {
     const withAmount = parseFloat(amount);
     if (!withAmount || withAmount <= 0) {
       showToast('Please enter a valid withdrawal amount', 'error');
       return false;
     }
 
-    if (withAmount > user.balances.availableBalance) {
-      showToast('Withdrawal amount exceeds available balance', 'error');
+    if (!bankAccountId) {
+      showToast('Please select a valid bank account', 'error');
       return false;
     }
 
-    const targetBank = bankAccounts.find(b => b.id === bankAccountId) || bankAccounts[0];
+    try {
+      const res = await withdrawalService.requestWithdrawal({
+        amount: withAmount,
+        bankAccountId,
+      });
 
-    setUser(prev => ({
-      ...prev,
-      balances: {
-        ...prev.balances,
-        totalBalance: prev.balances.totalBalance - withAmount,
-        availableBalance: prev.balances.availableBalance - withAmount,
-        withdrawableBalance: prev.balances.withdrawableBalance - withAmount
+      if (res?.success) {
+        showToast(`Withdrawal request for ₹${withAmount.toLocaleString()} submitted!`, 'success');
+        setIsWithdrawOpen(false);
+        await refreshAppData();
+        return true;
       }
-    }));
-
-    const newTxn = {
-      id: `TXN-${Math.floor(9000 + Math.random() * 999)}`,
-      type: "withdrawal",
-      title: `Withdrawal to ${targetBank?.bankName || 'Bank Account'}`,
-      amount: withAmount,
-      isPositive: false,
-      date: "Just now",
-      rawDate: new Date().toISOString(),
-      status: "Processing",
-      category: "Withdrawals",
-      reference: `Payout Ref: IMPS${Math.floor(100000 + Math.random() * 900000)}`
-    };
-    setTransactions(prev => [newTxn, ...prev]);
-
-    const newNotif = {
-      id: `NOTIF-${Date.now()}`,
-      title: "Withdrawal Request Submitted",
-      description: `₹${withAmount.toLocaleString()} withdrawal to ${targetBank?.bankName || 'Bank Account'} is under processing.`,
-      timestamp: "Just now",
-      read: false,
-      category: "Withdrawal",
-      iconType: "arrow-down"
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    showToast(`Withdrawal request for ₹${withAmount.toLocaleString()} submitted!`, 'success');
-    setIsWithdrawOpen(false);
-    return true;
+      showToast(res?.message || 'Withdrawal failed', 'error');
+      return false;
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Failed to process withdrawal request');
+      showToast(msg, 'error');
+      return false;
+    }
   };
 
   // Action: Add Bank Account
-  const handleAddBankAccount = (accountData) => {
-    const newAccount = {
-      id: `BANK-${Math.floor(10 + Math.random() * 90)}`,
-      bankName: accountData.bankName,
-      accountNumber: `XXXX XXXX ${accountData.accountNumber.slice(-4)}`,
-      rawAccountNumber: accountData.accountNumber,
-      holderName: accountData.holderName,
-      ifscCode: accountData.ifscCode.toUpperCase(),
-      branch: "Main Branch",
-      status: "Verified",
-      isDefault: bankAccounts.length === 0
-    };
+  const handleAddBankAccount = async (accountData) => {
+    try {
+      const res = await bankService.addBankAccount({
+        accountHolderName: accountData.holderName || accountData.accountHolderName,
+        bankName: accountData.bankName,
+        accountNumber: accountData.accountNumber,
+        ifsc: accountData.ifscCode || accountData.ifsc,
+      });
 
-    setBankAccounts(prev => [...prev, newAccount]);
-    showToast(`${accountData.bankName} account added successfully!`, 'success');
-    setIsAddBankOpen(false);
-    return true;
+      if (res?.success) {
+        showToast(`${accountData.bankName} linked successfully!`, 'success');
+        setIsAddBankOpen(false);
+        await refreshAppData();
+        return true;
+      }
+      showToast(res?.message || 'Failed to add bank account', 'error');
+      return false;
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Error linking bank account');
+      showToast(msg, 'error');
+      return false;
+    }
+  };
+
+  // Action: Delete Bank Account
+  const handleDeleteBankAccount = async (id) => {
+    try {
+      const res = await bankService.deleteBankAccount(id);
+      if (res?.success) {
+        showToast('Bank account unlinked successfully', 'info');
+        await refreshAppData();
+        return true;
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Error deleting bank account'), 'error');
+    }
+    return false;
   };
 
   // Action: Mark all notifications as read
-  const markAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    showToast('All notifications marked as read', 'info');
+  const markAllNotificationsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      showToast('All notifications marked as read', 'info');
+    } catch (err) {
+      // Fallback local update
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    }
   };
 
   // Action: Mark single notification read
-  const markNotificationRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markNotificationRead = async (id) => {
+    try {
+      await notificationService.markAsRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (err) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <AppContext.Provider
@@ -499,9 +486,14 @@ export const AppProvider = ({ children }) => {
         user,
         setUser,
         isAuthenticated,
+        loading,
         login,
         register,
         logout,
+        refreshAppData,
+        dashboardData,
+        plans,
+        setPlans,
         activeInvestments,
         transactions,
         bankAccounts,
@@ -511,7 +503,6 @@ export const AppProvider = ({ children }) => {
         showToast,
         closeToast,
         // Modals
-
         isDepositOpen,
         setIsDepositOpen,
         isWithdrawOpen,
@@ -531,8 +522,9 @@ export const AppProvider = ({ children }) => {
         handleDepositSubmit,
         handleWithdrawSubmit,
         handleAddBankAccount,
+        handleDeleteBankAccount,
         markAllNotificationsRead,
-        markNotificationRead
+        markNotificationRead,
       }}
     >
       {children}

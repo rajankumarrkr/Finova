@@ -7,6 +7,8 @@ import { Badge } from '../components/ui/Badge';
 import { StatCard } from '../components/ui/StatCard';
 import { Modal } from '../components/ui/Modal';
 import { formatCurrency } from '../utils/formatters';
+import { updateProfile } from '../services/authService';
+import { getErrorMessage } from '../utils/errorHandler';
 import {
   User,
   Mail,
@@ -15,7 +17,6 @@ import {
   History,
   TrendingUp,
   Building2,
-  CreditCard,
   Bell,
   Lock,
   HelpCircle,
@@ -25,7 +26,8 @@ import {
   Edit3,
   Calendar,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 
 export const Profile = () => {
@@ -38,23 +40,35 @@ export const Profile = () => {
 
   const [editName, setEditName] = useState(user.name);
   const [editPhone, setEditPhone] = useState(user.phone);
+  const [saving, setSaving] = useState(false);
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setUser(prev => ({
-      ...prev,
-      name: editName,
-      phone: editPhone
-    }));
-    showToast('Profile updated successfully!', 'success');
-    setIsEditModalOpen(false);
+    setSaving(true);
+    try {
+      const res = await updateProfile({ name: editName, phone: editPhone });
+      if (res?.success && res?.data?.user) {
+        setUser((prev) => ({
+          ...prev,
+          name: res.data.user.name || editName,
+          phone: res.data.user.phone || editPhone,
+        }));
+        showToast('Profile updated successfully!', 'success');
+        setIsEditModalOpen(false);
+      } else {
+        showToast(res?.message || 'Failed to update profile', 'error');
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to update profile'), 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
-
 
   const menuRows = [
     {
@@ -122,7 +136,7 @@ export const Profile = () => {
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <h2 className="text-2xl font-bold text-white font-sans">{user.name}</h2>
                 <Badge variant="emerald" size="sm" dot>
-                  {user.kycStatus} Investor
+                  {user.kycStatus || 'Verified'} Investor
                 </Badge>
               </div>
 
@@ -139,7 +153,7 @@ export const Profile = () => {
                 <span>•</span>
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  Member since {user.memberSince}
+                  Member since {user.memberSince || '2026'}
                 </span>
               </div>
             </div>
@@ -149,7 +163,11 @@ export const Profile = () => {
             variant="glass"
             size="md"
             icon={Edit3}
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => {
+              setEditName(user.name);
+              setEditPhone(user.phone);
+              setIsEditModalOpen(true);
+            }}
             className="w-full sm:w-auto"
           >
             Edit Profile
@@ -163,7 +181,7 @@ export const Profile = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Lifetime Investment"
-            value={formatCurrency(user.stats.lifetimeInvested)}
+            value={formatCurrency(user.stats?.lifetimeInvested || user.balances?.totalInvested || 0)}
             subtitle="Across all plan tiers"
             icon={TrendingUp}
             iconColor="text-emerald-400"
@@ -171,7 +189,7 @@ export const Profile = () => {
 
           <StatCard
             title="Total Lifetime Earnings"
-            value={formatCurrency(user.balances.totalEarnings + 2600)}
+            value={formatCurrency(user.balances?.totalEarnings || 0)}
             subtitle="Daily return + Referral bonus"
             icon={Zap}
             iconColor="text-blue-400"
@@ -179,7 +197,7 @@ export const Profile = () => {
 
           <StatCard
             title="Referral Earnings"
-            value={formatCurrency(user.balances.referralEarnings)}
+            value={formatCurrency(user.balances?.referralEarnings || user.balances?.totalReferralEarnings || 0)}
             subtitle="10% network commission"
             icon={User}
             iconColor="text-purple-400"
@@ -187,7 +205,7 @@ export const Profile = () => {
 
           <StatCard
             title="Withdrawable Balance"
-            value={formatCurrency(user.balances.withdrawableBalance)}
+            value={formatCurrency(user.balances?.withdrawableBalance || user.balances?.availableBalance || 0)}
             subtitle="Instant payout ready"
             icon={Building2}
             iconColor="text-amber-400"
@@ -203,19 +221,19 @@ export const Profile = () => {
           <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
             <span className="text-[11px] text-slate-400 block font-medium">Active Investments</span>
             <span className="text-xl md:text-2xl font-black text-emerald-400 font-mono mt-1 block">
-              {user.stats.activeInvestmentsCount}
+              {user.stats?.activeInvestmentsCount || 0}
             </span>
           </div>
           <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
             <span className="text-[11px] text-slate-400 block font-medium">Completed Plans</span>
             <span className="text-xl md:text-2xl font-black text-blue-400 font-mono mt-1 block">
-              {user.stats.completedPlansCount}
+              {user.stats?.completedPlansCount || 0}
             </span>
           </div>
           <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
             <span className="text-[11px] text-slate-400 block font-medium">Total Invested</span>
             <span className="text-xl md:text-2xl font-black text-white font-mono mt-1 block">
-              {formatCurrency(user.stats.lifetimeInvested)}
+              {formatCurrency(user.stats?.lifetimeInvested || user.balances?.totalInvested || 0)}
             </span>
           </div>
         </div>
@@ -294,8 +312,8 @@ export const Profile = () => {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <Button variant="ghost" fullWidth onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary" fullWidth>Save Changes</Button>
+            <Button variant="ghost" fullWidth onClick={() => setIsEditModalOpen(false)} disabled={saving}>Cancel</Button>
+            <Button type="submit" variant="primary" fullWidth loading={saving}>Save Changes</Button>
           </div>
         </form>
       </Modal>

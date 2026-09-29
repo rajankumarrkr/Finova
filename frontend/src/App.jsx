@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/navigation/Sidebar';
 import { Header } from './components/navigation/Header';
 import { BottomNavigation } from './components/navigation/BottomNavigation';
@@ -21,10 +21,30 @@ import { Profile } from './pages/Profile';
 import { History } from './pages/History';
 import { BankAccount } from './pages/BankAccount';
 import { Notifications } from './pages/Notifications';
-
-import { useLocation } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useApp();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0B0F19] flex items-center justify-center text-slate-400">
+        <div className="flex items-center gap-3">
+          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-mono text-emerald-400">Connecting to Finova Network...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -57,17 +77,66 @@ function AppContent() {
         {/* Page Content Container with bottom padding for mobile navigation */}
         <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto pb-24 lg:pb-12">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/plans" element={<Plans />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/bank-account" element={<BankAccount />} />
-            <Route path="/notifications" element={<Notifications />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/plans"
+              element={
+                <ProtectedRoute>
+                  <Plans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/team"
+              element={
+                <ProtectedRoute>
+                  <Team />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bank-account"
+              element={
+                <ProtectedRoute>
+                  <BankAccount />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             {/* Catch-all fallback */}
-            <Route path="*" element={<Home />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 
@@ -85,7 +154,6 @@ function AppContent() {
     </div>
   );
 }
-
 
 export default function App() {
   return (

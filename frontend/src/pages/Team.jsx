@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -6,11 +6,8 @@ import { StatCard } from '../components/ui/StatCard';
 import { Badge } from '../components/ui/Badge';
 import { TeamMemberItem } from '../components/cards/TeamMemberItem';
 import { formatCurrency, copyToClipboard } from '../utils/formatters';
-import {
-  teamStatsData,
-  teamMembersList,
-  referralHistoryList
-} from '../data/mockData';
+import { teamMembersList, referralHistoryList } from '../data/mockData';
+import * as referralService from '../services/referralService';
 import {
   Copy,
   Share2,
@@ -20,16 +17,82 @@ import {
   PiggyBank,
   CheckCircle2,
   Gift,
-  Sparkles,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 
 export const Team = () => {
   const { user, showToast } = useApp();
   const [copied, setCopied] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const referralCode = user.referralCode || 'RAJAN50';
+  const [stats, setStats] = useState({
+    totalTeam: 0,
+    activeTeam: 0,
+    inactiveTeam: 0,
+    totalReferralEarnings: user.balances?.referralEarnings || 0,
+  });
+
+  const [members, setMembers] = useState([]);
+  const [history, setHistory] = useState([]);
+
+  const referralCode = user.referralCode || 'REFCODE';
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  const referralUrl = `${appUrl}/register?ref=${referralCode}`;
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchReferralData = async () => {
+      setLoading(true);
+      try {
+        const [statsRes, historyRes] = await Promise.allSettled([
+          referralService.getReferralStats(),
+          referralService.getReferralHistory(),
+        ]);
+
+        if (isMounted) {
+          if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value?.data) {
+            setStats(statsRes.value.data);
+          }
+
+          if (historyRes.status === 'fulfilled' && historyRes.value?.success && Array.isArray(historyRes.value.data)) {
+            const rawList = historyRes.value.data;
+            setHistory(rawList);
+
+            // Format members from populated referral docs if present
+            const formattedMembers = rawList.map((item, idx) => {
+              const u = item.referredUser || {};
+              return {
+                id: u._id || item._id || `MBR-${idx}`,
+                name: u.name || item.memberName || 'Team Member',
+                email: u.email || `${u.phone || 'member'}@finova.app`,
+                phone: u.phone || 'N/A',
+                joinedDate: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recently',
+                activePlan: u.wallet?.totalInvested > 0 ? 'Active Plan' : 'Registered Only',
+                totalInvested: u.wallet?.totalInvested || 0,
+                commissionEarned: item.rewardAmount || 0,
+                status: u.wallet?.totalInvested > 0 ? 'Active' : 'Inactive',
+                avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name || idx}`,
+              };
+            });
+            if (formattedMembers.length > 0) {
+              setMembers(formattedMembers);
+            }
+          }
+        }
+      } catch (err) {
+        // Keep initial empty/mock fallbacks if backend returns 0 members
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchReferralData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCopyCode = () => {
     copyToClipboard(referralCode, () => {
@@ -43,7 +106,7 @@ export const Team = () => {
     const shareData = {
       title: 'Join Finova Wealth',
       text: `Use my referral code ${referralCode} to get exclusive investment perks on Finova!`,
-      url: window.location.origin
+      url: referralUrl,
     };
 
     if (navigator.share) {
@@ -60,7 +123,10 @@ export const Team = () => {
     }
   };
 
-  const filteredMembers = teamMembersList.filter(member =>
+  const displayMembers = members.length > 0 ? members : (loading ? [] : teamMembersList);
+  const displayHistory = history.length > 0 ? history : (loading ? [] : referralHistoryList);
+
+  const filteredMembers = displayMembers.filter((member) =>
     member.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
     member.email.toLowerCase().includes(searchFilter.toLowerCase())
   );
@@ -127,7 +193,7 @@ export const Team = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Team"
-          value={teamStatsData.totalTeam.toString()}
+          value={stats.totalTeam?.toString() || '0'}
           subtitle="Direct & Indirect network"
           icon={Users}
           iconColor="text-blue-400"
@@ -136,18 +202,18 @@ export const Team = () => {
 
         <StatCard
           title="Active Members"
-          value={teamStatsData.activeTeam.toString()}
+          value={stats.activeTeam?.toString() || '0'}
           subtitle="Currently running plans"
           icon={UserCheck}
           iconColor="text-emerald-400"
           iconBg="bg-emerald-500/10 border-emerald-500/20"
-          trend="72% Activity Rate"
+          trend="Live Team Data"
           trendType="up"
         />
 
         <StatCard
           title="Inactive Members"
-          value={teamStatsData.inactiveTeam.toString()}
+          value={stats.inactiveTeam?.toString() || '0'}
           subtitle="Registered without plan"
           icon={UserX}
           iconColor="text-slate-400"
@@ -156,7 +222,7 @@ export const Team = () => {
 
         <StatCard
           title="Referral Earnings"
-          value={formatCurrency(user.balances.referralEarnings)}
+          value={formatCurrency(stats.totalReferralEarnings || user.balances?.referralEarnings || 0)}
           subtitle="Rewards from eligible referrals"
           icon={PiggyBank}
           iconColor="text-purple-400"
@@ -169,7 +235,10 @@ export const Team = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-white font-sans">Team Members Directory</h3>
+            <h3 className="text-lg font-bold text-white font-sans flex items-center gap-2">
+              Team Members Directory
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />}
+            </h3>
             <p className="text-xs text-slate-400">List of users who registered with your code</p>
           </div>
 
@@ -186,14 +255,21 @@ export const Team = () => {
         </div>
 
         <div className="space-y-2">
-          {filteredMembers.length > 0 ? (
-            filteredMembers.map(member => (
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+              <span>Fetching team members...</span>
+            </div>
+          ) : filteredMembers.length > 0 ? (
+            filteredMembers.map((member) => (
               <TeamMemberItem key={member.id} member={member} />
             ))
           ) : (
             <Card className="p-8 text-center text-slate-400">
               <p className="text-sm">No team members registered yet.</p>
-              <p className="text-xs text-slate-500 mt-1">Share your referral code <strong className="text-purple-300 font-mono">{referralCode}</strong> to start earning 10% commission!</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Share your referral code <strong className="text-purple-300 font-mono">{referralCode}</strong> to start earning 10% commission!
+              </p>
             </Card>
           )}
         </div>
@@ -202,7 +278,7 @@ export const Team = () => {
       {/* REFERRAL REWARD HISTORY */}
       <div className="space-y-3">
         <h3 className="text-lg font-bold text-white font-sans">Referral Reward History</h3>
-        {referralHistoryList.length > 0 ? (
+        {displayHistory.length > 0 ? (
           <Card className="p-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -215,17 +291,22 @@ export const Team = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {referralHistoryList.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="py-3.5 pl-2 font-semibold text-white">{item.memberName}</td>
-                    <td className="py-3.5 text-slate-300 font-mono">{item.action}</td>
-                    <td className="py-3.5 text-purple-400 font-mono font-bold">{item.reward}</td>
-                    <td className="py-3.5 text-slate-400">{item.date}</td>
-                    <td className="py-3.5 text-right pr-2">
-                      <Badge variant="emerald" size="sm">{item.status}</Badge>
-                    </td>
-                  </tr>
-                ))}
+                {displayHistory.map((item, idx) => {
+                  const mName = item.referredUser?.name || item.memberName || 'Team Member';
+                  const rAmount = item.rewardAmount ? formatCurrency(item.rewardAmount) : item.reward;
+                  const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : (item.date || 'Recently');
+                  return (
+                    <tr key={item._id || item.id || idx} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 pl-2 font-semibold text-white">{mName}</td>
+                      <td className="py-3.5 text-slate-300 font-mono">{item.action || '10% Commission'}</td>
+                      <td className="py-3.5 text-purple-400 font-mono font-bold">{rAmount}</td>
+                      <td className="py-3.5 text-slate-400">{dateStr}</td>
+                      <td className="py-3.5 text-right pr-2">
+                        <Badge variant="emerald" size="sm">{item.status || 'Credited'}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </Card>
@@ -238,4 +319,3 @@ export const Team = () => {
     </div>
   );
 };
-

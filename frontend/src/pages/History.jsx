@@ -4,10 +4,11 @@ import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Tabs } from '../components/ui/Tabs';
 import { TransactionItem } from '../components/cards/TransactionItem';
-import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft } from 'lucide-react';
+import { transactionService } from '../services/transactionService';
+import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft, Loader2 } from 'lucide-react';
 
 export const History = () => {
-  const { transactions } = useApp();
+  const { transactions: appTransactions } = useApp();
   const location = useLocation();
 
   // Read URL query param if tab or search specified
@@ -18,6 +19,8 @@ export const History = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [transactions, setTransactions] = useState(appTransactions || []);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const qTab = queryParams.get('tab');
@@ -26,36 +29,74 @@ export const History = () => {
     if (qSearch) setSearchQuery(qSearch);
   }, [location.search]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTxns = async () => {
+      setLoading(true);
+      try {
+        const query = {};
+        if (activeTab !== 'all') {
+          const tabCatMap = {
+            investments: 'Investments',
+            earnings: 'Earnings',
+            withdrawals: 'Withdrawals',
+            referrals: 'Referrals',
+          };
+          query.category = tabCatMap[activeTab] || activeTab;
+        }
+        if (statusFilter !== 'all') {
+          query.status = statusFilter;
+        }
+        if (searchQuery.trim()) {
+          query.search = searchQuery.trim();
+        }
+
+        const res = await transactionService.getTransactions(query);
+        if (isMounted && res?.success) {
+          const rawList = res.data?.transactions || (Array.isArray(res.data) ? res.data : []);
+          const formatted = rawList.map((t) => {
+            let category = 'Investments';
+            if (t.type === 'daily_earning' || t.type === 'earnings') category = 'Earnings';
+            else if (t.type === 'withdrawal' || t.type === 'withdrawals') category = 'Withdrawals';
+            else if (t.type === 'referral_bonus' || t.type === 'referrals') category = 'Referrals';
+
+            return {
+              id: t._id || t.transactionId,
+              type: t.type,
+              title: t.reference || t.type?.replace('_', ' ')?.toUpperCase() || 'Transaction',
+              amount: t.amount,
+              isPositive: t.direction === 'credit',
+              date: t.createdAt ? new Date(t.createdAt).toLocaleString() : 'Recently',
+              rawDate: t.createdAt,
+              status: t.status ? t.status.charAt(0).toUpperCase() + t.status.slice(1) : 'Completed',
+              category,
+              reference: t.transactionId || t.reference || '',
+            };
+          });
+          setTransactions(formatted);
+        }
+      } catch (err) {
+        if (isMounted && appTransactions) {
+          setTransactions(appTransactions);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchTxns();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, statusFilter, searchQuery, appTransactions]);
+
   const tabs = [
     { id: 'all', label: 'All Activity', count: transactions.length },
-    { id: 'investments', label: 'Investments', icon: ArrowUpRight, count: transactions.filter(t => t.category === 'Investments').length },
-    { id: 'earnings', label: 'Daily Earnings', icon: TrendingUp, count: transactions.filter(t => t.category === 'Earnings').length },
-    { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownLeft, count: transactions.filter(t => t.category === 'Withdrawals').length },
-    { id: 'referrals', label: 'Referral Rewards', icon: Gift, count: transactions.filter(t => t.category === 'Referrals').length }
+    { id: 'investments', label: 'Investments', icon: ArrowUpRight, count: transactions.filter((t) => t.category === 'Investments').length },
+    { id: 'earnings', label: 'Daily Earnings', icon: TrendingUp, count: transactions.filter((t) => t.category === 'Earnings').length },
+    { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownLeft, count: transactions.filter((t) => t.category === 'Withdrawals').length },
+    { id: 'referrals', label: 'Referral Rewards', icon: Gift, count: transactions.filter((t) => t.category === 'Referrals').length },
   ];
-
-  // Filtering Logic
-  const filteredTransactions = transactions.filter(txn => {
-    // Tab filter
-    if (activeTab === 'investments' && txn.category !== 'Investments') return false;
-    if (activeTab === 'earnings' && txn.category !== 'Earnings') return false;
-    if (activeTab === 'withdrawals' && txn.category !== 'Withdrawals') return false;
-    if (activeTab === 'referrals' && txn.category !== 'Referrals') return false;
-
-    // Status filter
-    if (statusFilter !== 'all' && txn.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
-
-    // Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchTitle = txn.title.toLowerCase().includes(q);
-      const matchRef = txn.reference ? txn.reference.toLowerCase().includes(q) : false;
-      const matchAmount = txn.amount.toString().includes(q);
-      if (!matchTitle && !matchRef && !matchAmount) return false;
-    }
-
-    return true;
-  });
 
   return (
     <div className="space-y-6">
@@ -95,15 +136,24 @@ export const History = () => {
 
       {/* TRANSACTION LIST */}
       <div className="space-y-2">
-        {filteredTransactions.length > 0 ? (
-          filteredTransactions.map(txn => (
+        {loading ? (
+          <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            <span>Loading transactions...</span>
+          </div>
+        ) : transactions.length > 0 ? (
+          transactions.map((txn) => (
             <TransactionItem key={txn.id} transaction={txn} />
           ))
         ) : (
           <Card className="p-12 text-center text-slate-400">
             <p className="text-sm">No transactions match your current search or filter criteria.</p>
             <button
-              onClick={() => { setActiveTab('all'); setSearchQuery(''); setStatusFilter('all'); }}
+              onClick={() => {
+                setActiveTab('all');
+                setSearchQuery('');
+                setStatusFilter('all');
+              }}
               className="mt-3 text-xs font-semibold text-emerald-400 hover:underline"
             >
               Reset Filters

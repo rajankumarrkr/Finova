@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { formatCurrency } from '../../utils/formatters';
@@ -16,11 +16,18 @@ export const WithdrawModal = () => {
   } = useApp();
 
   const [amount, setAmount] = useState('');
-  const [selectedBankId, setSelectedBankId] = useState(bankAccounts[0]?.id || '');
+  const [selectedBankId, setSelectedBankId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const availableBalance = user.balances.availableBalance;
+  const availableBalance = user?.balances?.availableBalance || 0;
+
+  useEffect(() => {
+    if (bankAccounts && bankAccounts.length > 0) {
+      const primary = bankAccounts.find(b => b.isDefault || b.isPrimary);
+      setSelectedBankId(primary ? (primary.id || primary._id) : (bankAccounts[0].id || bankAccounts[0]._id));
+    }
+  }, [bankAccounts]);
 
   const handleAmountChange = (e) => {
     const val = e.target.value;
@@ -39,7 +46,7 @@ export const WithdrawModal = () => {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const num = parseFloat(amount);
     if (!num || num <= 0) {
@@ -55,12 +62,19 @@ export const WithdrawModal = () => {
       return;
     }
 
+    const targetBankId = selectedBankId || (bankAccounts[0]?.id || bankAccounts[0]?._id);
+    if (!targetBankId) {
+      setError('Please select a destination bank account');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      handleWithdrawSubmit(amount, selectedBankId);
-      setLoading(false);
+    const success = await handleWithdrawSubmit(num, targetBankId);
+    setLoading(false);
+
+    if (success) {
       setAmount('');
-    }, 700);
+    }
   };
 
   return (
@@ -153,30 +167,34 @@ export const WithdrawModal = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {bankAccounts.map((bank) => (
-                <div
-                  key={bank.id}
-                  onClick={() => setSelectedBankId(bank.id)}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                    selectedBankId === bank.id
-                      ? 'bg-emerald-500/10 border-emerald-500/60 shadow-md shadow-emerald-500/5'
-                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-slate-800 text-emerald-400">
-                      <Building2 className="w-5 h-5" />
+              {bankAccounts.map((bank) => {
+                const bId = bank.id || bank._id;
+                const isSelected = selectedBankId === bId;
+                return (
+                  <div
+                    key={bId}
+                    onClick={() => setSelectedBankId(bId)}
+                    className={`flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-emerald-500/10 border-emerald-500/60 shadow-md shadow-emerald-500/5'
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-slate-800 text-emerald-400">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-semibold text-white">{bank.bankName}</h5>
+                        <p className="text-xs font-mono text-slate-400">{bank.accountNumber || `XXXX XXXX ${bank.accountNumberLast4}`} ({bank.holderName || bank.accountHolderName})</p>
+                      </div>
                     </div>
-                    <div>
-                      <h5 className="text-sm font-semibold text-white">{bank.bankName}</h5>
-                      <p className="text-xs font-mono text-slate-400">{bank.accountNumber} ({bank.holderName})</p>
-                    </div>
+                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                      {bank.status || 'Verified'}
+                    </span>
                   </div>
-                  <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                    {bank.status}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

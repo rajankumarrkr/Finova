@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { notificationService } from '../services/notificationService';
 import {
   Bell,
   CheckCircle2,
@@ -10,14 +11,67 @@ import {
   Gift,
   ArrowDownLeft,
   ShieldCheck,
-  CheckCheck
+  CheckCheck,
+  Loader2
 } from 'lucide-react';
 
 export const Notifications = () => {
-  const { notifications, markAllNotificationsRead, markNotificationRead } = useApp();
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const {
+    notifications: appNotifications,
+    markAllNotificationsRead,
+    markNotificationRead
+  } = useApp();
 
-  const filteredNotifications = notifications.filter(n => {
+  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const [notifications, setNotifications] = useState(appNotifications || []);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchNotifs = async () => {
+      setLoading(true);
+      try {
+        const res = await notificationService.getNotifications();
+        if (isMounted && res?.success && Array.isArray(res.data)) {
+          const formatted = res.data.map((n) => ({
+            id: n._id || n.id,
+            title: n.title,
+            description: n.message || n.description,
+            timestamp: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+            read: n.isRead ?? n.read ?? false,
+            category: n.category || 'General',
+            iconType: n.type || n.iconType || 'dollar',
+          }));
+          setNotifications(formatted);
+        } else if (isMounted && appNotifications) {
+          setNotifications(appNotifications);
+        }
+      } catch (err) {
+        if (isMounted && appNotifications) {
+          setNotifications(appNotifications);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchNotifs();
+    return () => {
+      isMounted = false;
+    };
+  }, [appNotifications]);
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleMarkRead = async (id) => {
+    await markNotificationRead(id);
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.read;
     if (filter === 'read') return n.read;
     return true;
@@ -62,7 +116,10 @@ export const Notifications = () => {
             <Bell className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white font-sans">Notifications Center</h2>
+            <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
+              Notifications Center
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />}
+            </h2>
             <p className="text-xs text-slate-400">Stay updated on payouts, referrals, and security</p>
           </div>
         </div>
@@ -71,7 +128,7 @@ export const Notifications = () => {
           variant="outline"
           size="sm"
           icon={CheckCheck}
-          onClick={markAllNotificationsRead}
+          onClick={handleMarkAllRead}
         >
           Mark All as Read
         </Button>
@@ -94,7 +151,7 @@ export const Notifications = () => {
             filter === 'unread' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
           }`}
         >
-          Unread ({notifications.filter(n => !n.read).length})
+          Unread ({notifications.filter((n) => !n.read).length})
         </button>
 
         <button
@@ -103,17 +160,22 @@ export const Notifications = () => {
             filter === 'read' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
           }`}
         >
-          Read ({notifications.filter(n => n.read).length})
+          Read ({notifications.filter((n) => n.read).length})
         </button>
       </div>
 
       {/* NOTIFICATIONS CARDS LIST */}
       <div className="space-y-3">
-        {filteredNotifications.length > 0 ? (
+        {loading && notifications.length === 0 ? (
+          <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            <span>Loading notifications...</span>
+          </div>
+        ) : filteredNotifications.length > 0 ? (
           filteredNotifications.map((notif) => (
             <div
               key={notif.id}
-              onClick={() => markNotificationRead(notif.id)}
+              onClick={() => handleMarkRead(notif.id)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                 !notif.read
                   ? 'bg-slate-900/90 border-emerald-500/40 shadow-lg shadow-emerald-500/5'

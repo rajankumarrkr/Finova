@@ -1,74 +1,60 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+import api from '../lib/api';
+import * as authService from './authService';
+import * as dashboardService from './dashboardService';
+import * as planService from './planService';
+import * as investmentService from './investmentService';
+import * as earningService from './earningService';
+import * as referralService from './referralService';
+import * as transactionService from './transactionService';
+import * as withdrawalService from './withdrawalService';
+import * as bankService from './bankService';
+import * as notificationService from './notificationService';
 
-/**
- * Generic HTTP Request Helper for REST API calls
- */
-async function fetchApi(endpoint, options = {}) {
-  const token = localStorage.getItem('finova_token');
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers
-  };
+export const apiService = {
+  // Auth
+  register: authService.register,
+  login: authService.login,
+  logout: authService.logout,
+  refresh: authService.refresh,
+  getMe: authService.getMe,
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include' // Send HTTP-only cookies (refresh token)
-  });
+  // Dashboard
+  getDashboard: dashboardService.getDashboard,
+  getPerformance: dashboardService.getPerformance,
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || 'API Request Failed');
-  }
-  return data;
-}
-
-export const api = {
-  // Authentication
-  register: (userData) => fetchApi('/auth/register', { method: 'POST', body: JSON.stringify(userData) }),
-  login: (credentials) => fetchApi('/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
-  logout: () => fetchApi('/auth/logout', { method: 'POST' }),
-  getMe: () => fetchApi('/auth/me'),
-
-  // Dashboard & Metrics
-  getDashboard: () => fetchApi('/dashboard'),
-  getPerformance: (range = '1M') => fetchApi(`/dashboard/performance?range=${range}`),
-
-  // Investment Plans
-  getPlans: () => fetchApi('/plans'),
+  // Plans
+  getPlans: planService.getPlans,
+  getPlanById: planService.getPlanById,
 
   // Investments
-  createInvestment: (planId) => fetchApi('/investments', { method: 'POST', body: JSON.stringify({ planId }) }),
-  getInvestments: () => fetchApi('/investments'),
+  createInvestment: investmentService.createInvestment,
+  getInvestments: investmentService.getInvestments,
+  getInvestmentById: investmentService.getInvestmentById,
 
   // Earnings
-  getEarnings: () => fetchApi('/earnings'),
-  getEarningsSummary: () => fetchApi('/earnings/summary'),
-
-  // Transactions
-  getTransactions: (query = '') => fetchApi(`/transactions?${query}`),
+  getEarnings: earningService.getEarnings,
+  getEarningsSummary: earningService.getEarningsSummary,
 
   // Referrals
-  getReferralStats: () => fetchApi('/referrals/stats'),
-  getReferralHistory: () => fetchApi('/referrals/history'),
+  getReferralStats: referralService.getReferralStats,
+  getReferralHistory: referralService.getReferralHistory,
 
-  // Payments / Deposits
-  createDepositOrder: (amount) => fetchApi('/payments/create-order', { method: 'POST', body: JSON.stringify({ amount }) }),
-  verifyDepositPayment: (paymentData) => fetchApi('/payments/verify', { method: 'POST', body: JSON.stringify(paymentData) }),
+  // Transactions
+  getTransactions: transactionService.getTransactions,
 
   // Withdrawals
-  requestWithdrawal: (withdrawalData) => fetchApi('/withdrawals', { method: 'POST', body: JSON.stringify(withdrawalData) }),
-  getWithdrawals: () => fetchApi('/withdrawals'),
+  requestWithdrawal: withdrawalService.requestWithdrawal,
+  getWithdrawals: withdrawalService.getWithdrawals,
 
   // Bank Accounts
-  getBankAccounts: () => fetchApi('/bank-accounts'),
-  addBankAccount: (bankData) => fetchApi('/bank-accounts', { method: 'POST', body: JSON.stringify(bankData) }),
-  deleteBankAccount: (id) => fetchApi(`/bank-accounts/${id}`, { method: 'DELETE' }),
+  getBankAccounts: bankService.getBankAccounts,
+  addBankAccount: bankService.addBankAccount,
+  deleteBankAccount: bankService.deleteBankAccount,
 
   // Notifications
-  getNotifications: () => fetchApi('/notifications'),
-  markNotificationRead: (id) => fetchApi(`/notifications/${id}/read`, { method: 'PATCH' }),
-  markAllNotificationsRead: () => fetchApi('/notifications/read-all', { method: 'PATCH' })
+  getNotifications: notificationService.getNotifications,
+  markAsRead: notificationService.markAsRead,
+  markAllAsRead: notificationService.markAllAsRead,
 };
+
+export default api;
