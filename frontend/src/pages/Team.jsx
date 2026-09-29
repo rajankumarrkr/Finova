@@ -37,7 +37,7 @@ export const Team = () => {
   const [members, setMembers] = useState([]);
   const [history, setHistory] = useState([]);
 
-  const referralCode = user.referralCode || 'REFCODE';
+  const referralCode = user.referralCode || 'FINOVA123';
   const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
   const referralUrl = `${appUrl}/register?ref=${referralCode}`;
 
@@ -60,7 +60,6 @@ export const Team = () => {
             const rawList = historyRes.value.data;
             setHistory(rawList);
 
-            // Format members from populated referral docs if present
             const formattedMembers = rawList.map((item, idx) => {
               const u = item.referredUser || {};
               return {
@@ -82,7 +81,7 @@ export const Team = () => {
           }
         }
       } catch (err) {
-        // Keep initial empty/mock fallbacks if backend returns 0 members
+        // Keep initial fallbacks
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -134,32 +133,32 @@ export const Team = () => {
   return (
     <div className="space-y-6">
       {/* REFERRAL PROMO CARD */}
-      <Card gradient gradientColor="purple" className="relative overflow-hidden p-6 md:p-8">
+      <div className="p-6 md:p-8 rounded-[18px] bg-gradient-to-r from-[#0E3021] via-[#0A261A] to-[#061F15] border border-amber-400/25 shadow-xl shadow-[#031C12] relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 text-[#F4D06F] text-xs font-bold font-mono uppercase mb-3">
               <Gift className="w-3.5 h-3.5" />
-              10% Instant Referral Commission
+              10% Instant Referral Reward
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white font-sans">
-              Invite Friends & Grow Together
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] font-sans">
+              Team Overview
             </h2>
-            <p className="text-sm text-slate-300 mt-1 max-w-xl">
+            <p className="text-sm text-[#A7B8AE] mt-1 max-w-xl font-sans">
               Earn an instant 10% direct reward credited straight to your withdrawable balance whenever your invited team members activate any plan.
             </p>
 
             {/* Code & Share Box */}
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-950/80 border border-purple-500/30 rounded-2xl">
-                <span className="text-xs text-slate-400 font-medium">Your Code:</span>
-                <span className="font-mono text-lg font-black text-purple-300 tracking-wider">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-[#031C12] border border-amber-400/30 rounded-2xl">
+                <span className="text-xs text-[#71857A] font-semibold uppercase tracking-wider">Referral Code:</span>
+                <span className="font-mono text-lg font-black text-[#F4D06F] tracking-wider">
                   {referralCode}
                 </span>
               </div>
 
               <Button
-                variant="emerald"
+                variant="gold"
                 size="md"
                 icon={copied ? CheckCircle2 : Copy}
                 onClick={handleCopyCode}
@@ -168,7 +167,7 @@ export const Team = () => {
               </Button>
 
               <Button
-                variant="glass"
+                variant="secondary"
                 size="md"
                 icon={Share2}
                 onClick={handleShare}
@@ -179,25 +178,25 @@ export const Team = () => {
           </div>
 
           {/* Large Reward Badge */}
-          <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 text-center shrink-0 min-w-[200px]">
-            <span className="text-xs text-slate-400 uppercase font-medium">Referral Commission</span>
-            <div className="text-4xl font-black text-emerald-400 font-mono mt-1">
+          <div className="p-5 rounded-2xl bg-[#061F15] border border-emerald-500/16 text-center shrink-0 min-w-[200px]">
+            <span className="text-xs text-[#71857A] uppercase font-bold tracking-wider">Referral Reward Rate</span>
+            <div className="text-4xl font-black text-[#F4D06F] font-mono mt-1">
               10%
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Unlimited payouts</p>
+            <p className="text-[11px] text-[#A7B8AE] mt-1 font-mono">Instant Payout</p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* TEAM STATISTICS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Team"
+          title="Total Referrals"
           value={stats.totalTeam?.toString() || '0'}
           subtitle="Direct & Indirect network"
           icon={Users}
-          iconColor="text-blue-400"
-          iconBg="bg-blue-500/10 border-blue-500/20"
+          iconColor="text-[#F4D06F]"
+          iconBg="bg-amber-400/10 border-amber-400/25"
         />
 
         <StatCard
@@ -205,28 +204,31 @@ export const Team = () => {
           value={stats.activeTeam?.toString() || '0'}
           subtitle="Currently running plans"
           icon={UserCheck}
-          iconColor="text-emerald-400"
-          iconBg="bg-emerald-500/10 border-emerald-500/20"
-          trend="Live Team Data"
+          iconColor="text-[#34D399]"
+          iconBg="bg-emerald-500/15 border-emerald-500/30"
+          valueColor="text-[#34D399]"
+          trend="Active Network"
           trendType="up"
         />
 
         <StatCard
-          title="Inactive Members"
-          value={stats.inactiveTeam?.toString() || '0'}
-          subtitle="Registered without plan"
+          title="Pending Rewards"
+          value="₹0.00"
+          subtitle="Pending verification"
           icon={UserX}
-          iconColor="text-slate-400"
-          iconBg="bg-slate-800 border-slate-700"
+          iconColor="text-[#71857A]"
+          iconBg="bg-[#0A261A] border-emerald-500/16"
+          valueColor="text-[#A7B8AE]"
         />
 
         <StatCard
           title="Referral Earnings"
           value={formatCurrency(stats.totalReferralEarnings || user.balances?.referralEarnings || 0)}
-          subtitle="Rewards from eligible referrals"
+          subtitle="Total rewards earned"
           icon={PiggyBank}
-          iconColor="text-purple-400"
-          iconBg="bg-purple-500/10 border-purple-500/20"
+          iconColor="text-[#F4D06F]"
+          iconBg="bg-amber-400/10 border-amber-400/25"
+          valueColor="text-[#F4D06F]"
           highlight={true}
         />
       </div>
@@ -235,29 +237,29 @@ export const Team = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-white font-sans flex items-center gap-2">
-              Team Members Directory
-              {loading && <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />}
+            <h3 className="text-lg font-bold text-[#F8FAFC] font-sans flex items-center gap-2">
+              Team Directory
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-[#F4D06F]" />}
             </h3>
-            <p className="text-xs text-slate-400">List of users who registered with your code</p>
+            <p className="text-xs text-[#A7B8AE]">List of users registered with your referral code</p>
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#71857A]" />
             <input
               type="text"
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Search member by name..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 bg-[#061F15] border border-emerald-500/16 rounded-2xl text-xs text-[#F8FAFC] placeholder-[#71857A] focus:outline-none focus:border-emerald-500"
             />
           </div>
         </div>
 
         <div className="space-y-2">
           {loading ? (
-            <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            <div className="p-8 text-center text-[#71857A] flex items-center justify-center gap-2 font-mono">
+              <Loader2 className="w-5 h-5 animate-spin text-[#F4D06F]" />
               <span>Fetching team members...</span>
             </div>
           ) : filteredMembers.length > 0 ? (
@@ -265,10 +267,10 @@ export const Team = () => {
               <TeamMemberItem key={member.id} member={member} />
             ))
           ) : (
-            <Card className="p-8 text-center text-slate-400">
+            <Card className="p-8 text-center text-[#71857A]">
               <p className="text-sm">No team members registered yet.</p>
-              <p className="text-xs text-slate-500 mt-1">
-                Share your referral code <strong className="text-purple-300 font-mono">{referralCode}</strong> to start earning 10% commission!
+              <p className="text-xs text-[#A7B8AE] mt-1 font-mono">
+                Share your referral code <strong className="text-[#F4D06F]">{referralCode}</strong> to start earning 10% rewards!
               </p>
             </Card>
           )}
@@ -277,12 +279,12 @@ export const Team = () => {
 
       {/* REFERRAL REWARD HISTORY */}
       <div className="space-y-3">
-        <h3 className="text-lg font-bold text-white font-sans">Referral Reward History</h3>
+        <h3 className="text-lg font-bold text-[#F8FAFC] font-sans">Referral Reward History</h3>
         {displayHistory.length > 0 ? (
           <Card className="p-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                <tr className="border-b border-emerald-500/16 text-[#71857A] font-bold uppercase tracking-wider">
                   <th className="pb-3 pl-2">Member</th>
                   <th className="pb-3">Action</th>
                   <th className="pb-3">Reward Earned</th>
@@ -290,19 +292,19 @@ export const Team = () => {
                   <th className="pb-3 text-right pr-2">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-emerald-500/16">
                 {displayHistory.map((item, idx) => {
                   const mName = item.referredUser?.name || item.memberName || 'Team Member';
                   const rAmount = item.rewardAmount ? formatCurrency(item.rewardAmount) : item.reward;
                   const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : (item.date || 'Recently');
                   return (
-                    <tr key={item._id || item.id || idx} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 pl-2 font-semibold text-white">{mName}</td>
-                      <td className="py-3.5 text-slate-300 font-mono">{item.action || '10% Commission'}</td>
-                      <td className="py-3.5 text-purple-400 font-mono font-bold">{rAmount}</td>
-                      <td className="py-3.5 text-slate-400">{dateStr}</td>
+                    <tr key={item._id || item.id || idx} className="hover:bg-[#061F15] transition-colors">
+                      <td className="py-3.5 pl-2 font-bold text-[#F8FAFC]">{mName}</td>
+                      <td className="py-3.5 text-[#A7B8AE] font-mono">{item.action || '10% Reward'}</td>
+                      <td className="py-3.5 text-[#F4D06F] font-mono font-bold">{rAmount}</td>
+                      <td className="py-3.5 text-[#71857A] font-mono">{dateStr}</td>
                       <td className="py-3.5 text-right pr-2">
-                        <Badge variant="emerald" size="sm">{item.status || 'Credited'}</Badge>
+                        <Badge variant="gold" size="sm">{item.status || 'Credited'}</Badge>
                       </td>
                     </tr>
                   );
@@ -311,7 +313,7 @@ export const Team = () => {
             </table>
           </Card>
         ) : (
-          <Card className="p-8 text-center text-slate-400">
+          <Card className="p-8 text-center text-[#71857A]">
             <p className="text-sm">No referral reward history yet.</p>
           </Card>
         )}

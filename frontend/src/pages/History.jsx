@@ -11,7 +11,6 @@ export const History = () => {
   const { transactions: appTransactions } = useApp();
   const location = useLocation();
 
-  // Read URL query param if tab or search specified
   const queryParams = new URLSearchParams(location.search);
   const initialTab = queryParams.get('tab') || 'all';
   const initialSearch = queryParams.get('search') || '';
@@ -93,9 +92,9 @@ export const History = () => {
   const tabs = [
     { id: 'all', label: 'All Activity', count: transactions.length },
     { id: 'investments', label: 'Investments', icon: ArrowUpRight, count: transactions.filter((t) => t.category === 'Investments').length },
-    { id: 'earnings', label: 'Daily Earnings', icon: TrendingUp, count: transactions.filter((t) => t.category === 'Earnings').length },
+    { id: 'earnings', label: 'Earnings', icon: TrendingUp, count: transactions.filter((t) => t.category === 'Earnings').length },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownLeft, count: transactions.filter((t) => t.category === 'Withdrawals').length },
-    { id: 'referrals', label: 'Referral Rewards', icon: Gift, count: transactions.filter((t) => t.category === 'Referrals').length },
+    { id: 'referrals', label: 'Referrals', icon: Gift, count: transactions.filter((t) => t.category === 'Referrals').length },
   ];
 
   return (
@@ -107,23 +106,23 @@ export const History = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Search box */}
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#71857A]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title, ref code, amount..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#061F15] border border-emerald-500/16 rounded-2xl text-xs text-[#F8FAFC] placeholder-[#71857A] focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           {/* Status filter dropdown */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+            <Filter className="w-4 h-4 text-[#71857A] shrink-0" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-44 px-3 py-2 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-medium text-slate-300 focus:outline-none focus:border-emerald-500"
+              className="w-full sm:w-44 px-3 py-2 bg-[#061F15] border border-emerald-500/16 rounded-2xl text-xs font-semibold text-[#F8FAFC] focus:outline-none focus:border-emerald-500"
             >
               <option value="all">Status: All</option>
               <option value="completed">Status: Completed</option>
@@ -137,24 +136,24 @@ export const History = () => {
       {/* TRANSACTION LIST */}
       <div className="space-y-2">
         {loading ? (
-          <div className="p-12 text-center text-slate-400 flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
-            <span>Loading transactions...</span>
+          <div className="p-12 text-center text-[#71857A] flex items-center justify-center gap-2 font-mono">
+            <Loader2 className="w-5 h-5 animate-spin text-[#F4D06F]" />
+            <span>Loading transaction records...</span>
           </div>
         ) : transactions.length > 0 ? (
           transactions.map((txn) => (
             <TransactionItem key={txn.id} transaction={txn} />
           ))
         ) : (
-          <Card className="p-12 text-center text-slate-400">
-            <p className="text-sm">No transactions match your current search or filter criteria.</p>
+          <Card className="p-12 text-center text-[#71857A]">
+            <p className="text-sm font-sans">No transactions match your current search or filter criteria.</p>
             <button
               onClick={() => {
                 setActiveTab('all');
                 setSearchQuery('');
                 setStatusFilter('all');
               }}
-              className="mt-3 text-xs font-semibold text-emerald-400 hover:underline"
+              className="mt-3 text-xs font-bold text-[#34D399] hover:underline"
             >
               Reset Filters
             </button>

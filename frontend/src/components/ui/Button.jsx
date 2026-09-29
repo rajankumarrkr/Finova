@@ -14,7 +14,7 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0B0F19] disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]";
+  const baseStyles = "inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#031C12] disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]";
 
   const sizeStyles = {
     sm: "text-xs px-3 py-1.5 rounded-xl gap-1.5",
@@ -23,13 +23,14 @@ export const Button = ({
   };
 
   const variantStyles = {
-    primary: "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold shadow-lg shadow-emerald-500/20 focus:ring-emerald-500 border border-emerald-400/30",
-    secondary: "bg-slate-800 hover:bg-slate-700 text-slate-100 focus:ring-slate-500 border border-slate-700/80 shadow-md",
-    outline: "border border-slate-700 hover:border-slate-500 text-slate-200 hover:bg-slate-800/50 focus:ring-slate-500",
-    ghost: "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 focus:ring-slate-500",
-    emerald: "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 focus:ring-emerald-500",
-    danger: "bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20 focus:ring-rose-500 border border-rose-400/30",
-    glass: "bg-white/10 hover:bg-white/15 text-white backdrop-blur-md border border-white/10 focus:ring-white/30"
+    primary: "bg-gradient-to-r from-emerald-500 to-amber-300 hover:from-emerald-400 hover:to-amber-200 text-[#031C12] font-bold shadow-lg shadow-emerald-950/40 border border-emerald-400/40 focus:ring-emerald-500",
+    gold: "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-[#031C12] font-bold shadow-lg shadow-amber-950/40 border border-amber-300/40 focus:ring-amber-400",
+    secondary: "bg-[#0A261A] hover:bg-[#0E3021] text-[#F8FAFC] border border-emerald-500/30 focus:ring-emerald-500 shadow-md",
+    outline: "bg-transparent border border-emerald-500/25 hover:border-emerald-500/50 text-[#A7B8AE] hover:text-[#F8FAFC] hover:bg-[#0A261A]/50 focus:ring-emerald-500",
+    ghost: "text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#0A261A]/80 focus:ring-emerald-500",
+    emerald: "bg-emerald-500/10 hover:bg-emerald-500/20 text-[#34D399] border border-emerald-500/30 focus:ring-emerald-500",
+    danger: "bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 focus:ring-rose-500",
+    glass: "bg-[#0A261A]/80 hover:bg-[#0E3021] text-[#F8FAFC] backdrop-blur-md border border-emerald-500/20 focus:ring-emerald-500"
   };
 
   const widthStyle = fullWidth ? "w-full" : "";
@@ -39,7 +40,7 @@ export const Button = ({
       type={type}
       disabled={disabled || loading}
       onClick={onClick}
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyle} ${className}`}
+      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant] || variantStyles.primary} ${widthStyle} ${className}`}
       {...props}
     >
       {loading ? (

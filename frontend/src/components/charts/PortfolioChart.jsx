@@ -17,12 +17,12 @@ import { useApp } from '../../context/AppContext';
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900/95 border border-slate-700/80 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <p className="text-xs text-slate-400 font-medium mb-1">{label}</p>
-        <p className="text-base font-bold font-mono text-emerald-400">
+      <div className="bg-[#0A261A] border border-amber-400/30 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
+        <p className="text-xs text-[#A7B8AE] font-semibold mb-1">{label}</p>
+        <p className="text-base font-bold font-mono text-[#F4D06F]">
           {formatCurrency(payload[0].value)}
         </p>
-        <p className="text-[10px] text-slate-400 mt-0.5">Portfolio Value</p>
+        <p className="text-[10px] text-[#71857A] mt-0.5 font-sans">Portfolio Valuation</p>
       </div>
     );
   }
@@ -67,22 +67,22 @@ export const PortfolioChart = () => {
   const currentTotal = user?.balances?.totalBalance || 0;
 
   return (
-    <div className="w-full">
+    <div className="w-full bg-[#081D14] p-5 md:p-6 rounded-[18px] border border-emerald-500/16">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-white font-sans">Portfolio Performance</h3>
-            <span className="text-[11px] font-mono text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-              Growth Chart
-              {loading && <Loader2 className="w-3 h-3 animate-spin text-emerald-400 inline" />}
+            <h3 className="text-lg font-bold text-[#F8FAFC] font-sans">Portfolio Performance</h3>
+            <span className="text-[11px] font-mono text-[#71857A] bg-[#0A261A] border border-emerald-500/16 px-2 py-0.5 rounded-md flex items-center gap-1">
+              Wealth Growth
+              {loading && <Loader2 className="w-3 h-3 animate-spin text-[#F4D06F] inline" />}
             </span>
           </div>
           <div className="flex items-baseline gap-2.5 mt-1">
-            <span className="text-2xl md:text-3xl font-extrabold text-white font-mono tracking-tight">
+            <span className="text-2xl md:text-3xl font-extrabold text-[#F4D06F] font-mono tracking-tight">
               {formatCurrency(currentTotal)}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#34D399] bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
               <TrendingUp className="w-3 h-3" />
               +7.1% P.A.
             </span>
@@ -90,16 +90,16 @@ export const PortfolioChart = () => {
         </div>
 
         {/* Timeframe selector */}
-        <div className="flex items-center gap-1 p-1 bg-slate-950/80 border border-slate-800/80 rounded-2xl self-start sm:self-auto">
+        <div className="flex items-center gap-1 p-1 bg-[#061F15] border border-emerald-500/16 rounded-2xl self-start sm:self-auto">
           {timeframes.map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               disabled={loading}
-              className={`px-3 py-1.5 text-xs font-mono font-semibold rounded-xl transition-all duration-200 focus:outline-none ${
+              className={`px-3 py-1.5 text-xs font-mono font-bold rounded-xl transition-all duration-200 focus:outline-none ${
                 timeframe === tf
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                  ? 'bg-[#123A29] text-[#F4D06F] border border-emerald-500/30 shadow-sm shadow-[#031C12]'
+                  : 'text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#0A261A]'
               }`}
             >
               {tf}
@@ -111,8 +111,8 @@ export const PortfolioChart = () => {
       {/* Chart Canvas */}
       <div className="h-64 sm:h-72 w-full relative">
         {loading && (
-          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-4 py-2 rounded-xl shadow-xl text-xs text-emerald-400 font-mono">
+          <div className="absolute inset-0 bg-[#031C12]/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+            <div className="flex items-center gap-2 bg-[#0A261A] border border-emerald-500/30 px-4 py-2 rounded-xl shadow-xl text-xs text-[#F4D06F] font-mono font-bold">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Updating timeframe data...</span>
             </div>
@@ -122,16 +122,16 @@ export const PortfolioChart = () => {
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.25} />
                 <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(16, 185, 129, 0.08)" vertical={false} />
 
             <XAxis
               dataKey="time"
-              stroke="#64748B"
+              stroke="#71857A"
               fontSize={11}
               tickLine={false}
               axisLine={false}
@@ -139,7 +139,7 @@ export const PortfolioChart = () => {
             />
 
             <YAxis
-              stroke="#64748B"
+              stroke="#71857A"
               fontSize={11}
               tickLine={false}
               axisLine={false}
@@ -156,7 +156,7 @@ export const PortfolioChart = () => {
               strokeWidth={2.5}
               fillOpacity={1}
               fill="url(#colorPortfolio)"
-              activeDot={{ r: 6, fill: '#10B981', stroke: '#0B0F19', strokeWidth: 3 }}
+              activeDot={{ r: 6, fill: '#F4D06F', stroke: '#031C12', strokeWidth: 3 }}
             />
           </AreaChart>
         </ResponsiveContainer>

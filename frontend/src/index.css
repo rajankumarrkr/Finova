@@ -2,56 +2,150 @@
 
 @layer base {
   body {
-    background-color: #0B0F19;
-    color: #F1F5F9;
+    background-color: #031C12;
+    color: #F8FAFC;
     font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Custom Glassmorphism & Card Styles */
-.glass-panel {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+/* Custom Emerald Wealth Utility Classes */
+
+/* Background Color Tokens */
+.bg-deep-forest {
+  background-color: #031C12;
+}
+.bg-forest-subtle {
+  background-color: #061F15;
+}
+.bg-card-dark {
+  background-color: #0A261A;
+}
+.bg-card-elevated {
+  background-color: #0E3021;
+}
+.bg-surface-dark {
+  background-color: #123A29;
 }
 
-.glass-panel-interactive {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* Text Color Tokens */
+.text-gold-primary {
+  color: #F4D06F;
+}
+.text-gold-luxury {
+  color: #D4AF37;
+}
+.text-emerald-primary {
+  color: #10B981;
+}
+.text-emerald-bright {
+  color: #34D399;
+}
+.text-emerald-dark {
+  color: #047857;
+}
+.text-slate-secondary {
+  color: #A7B8AE;
+}
+.text-slate-muted {
+  color: #71857A;
 }
 
-.glass-panel-interactive:hover {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+/* Luxury Gold & Emerald Gradients */
+.gold-text-gradient {
+  background: linear-gradient(135deg, #F4D06F 0%, #D4AF37 50%, #F4D06F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.emerald-text-gradient {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-emerald-gradient-btn {
+  background: linear-gradient(135deg, #10B981 0%, #F4D06F 100%);
+  color: #031C12;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
+}
+
+.gold-emerald-gradient-btn:hover {
+  background: linear-gradient(135deg, #34D399 0%, #F5D98B 100%);
+  box-shadow: 0 4px 20px -2px rgba(244, 208, 111, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Border Tokens */
+.border-emerald-subtle {
+  border-color: rgba(16, 185, 129, 0.16);
+}
+
+.border-gold-subtle {
+  border-color: rgba(244, 208, 111, 0.22);
+}
+
+/* Cards & Surface Styles */
+.wealth-card {
+  background-color: #0A261A;
+  border: 1px solid rgba(16, 185, 129, 0.16);
+  border-radius: 18px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wealth-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(3, 28, 18, 0.8);
 }
 
-/* Premium Card Glow Gradients */
-.balance-card-bg {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.95) 50%, rgba(99, 102, 241, 0.1) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+.wealth-card-gold {
+  background-color: #0A261A;
+  border: 1px solid rgba(244, 208, 111, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 0 25px -5px rgba(244, 208, 111, 0.08);
 }
 
-.card-gradient-emerald {
-  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 40%),
-              linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+.wealth-card-elevated {
+  background-color: #0E3021;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 18px;
 }
 
-.card-gradient-purple {
-  background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.12), transparent 40%),
-              linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+/* Glass Panels */
+.glass-panel-emerald {
+  background: rgba(10, 38, 26, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(16, 185, 129, 0.16);
 }
 
-.card-gradient-blue {
-  background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 40%),
-              linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+.glass-panel-gold {
+  background: rgba(10, 38, 26, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(244, 208, 111, 0.25);
+}
+
+/* Inputs & Form Elements */
+.wealth-input {
+  background-color: #061F15;
+  border: 1px solid rgba(16, 185, 129, 0.16);
+  color: #F8FAFC;
+  border-radius: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+.wealth-input::placeholder {
+  color: #71857A;
+}
+
+.wealth-input:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 /* Custom Scrollbar */
@@ -60,33 +154,20 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F19;
+  background: #031C12;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #123A29;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #047857;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-
-/* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-/* Pulse Glow Animation */
-@keyframes subtle-pulse {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.03); }
-}
-
-.animate-subtle-pulse {
-  animation: subtle-pulse 3s infinite ease-in-out;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

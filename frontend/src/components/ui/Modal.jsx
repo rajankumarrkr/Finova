@@ -30,25 +30,25 @@ export const Modal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300 animate-fade-in"
+        className="fixed inset-0 bg-[#031C12]/85 backdrop-blur-md transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className={`relative w-full ${maxWidth} glass-panel border border-slate-700/60 rounded-3xl shadow-2xl shadow-black/80 overflow-hidden z-10 my-auto transform transition-all duration-300 animate-scale-up`}>
+      <div className={`relative w-full ${maxWidth} bg-[#0A261A] border border-emerald-500/20 rounded-[22px] shadow-2xl shadow-[#031C12] overflow-hidden z-10 my-auto transform transition-all duration-300 animate-scale-up`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 md:p-6 border-b border-slate-800/80">
+        <div className="flex items-center justify-between p-5 md:p-6 border-b border-emerald-500/16 bg-[#0E3021]">
           <div>
-            <h3 className="text-lg md:text-xl font-bold text-white tracking-tight font-sans">{title}</h3>
+            <h3 className="text-lg md:text-xl font-bold text-[#F8FAFC] tracking-tight font-sans">{title}</h3>
             {subtitle && (
-              <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+              <p className="text-xs text-[#A7B8AE] mt-0.5">{subtitle}</p>
             )}
           </div>
 
           {showCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-colors focus:outline-none"
+              className="p-2 rounded-xl text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#123A29] transition-colors focus:outline-none"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />

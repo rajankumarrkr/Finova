@@ -14,11 +14,13 @@ import {
   Zap,
   ArrowUpRight,
   History,
-  TrendingUp,
+  Building2,
+  Users,
   Sparkles,
   Wallet,
   PiggyBank,
   ChevronRight,
+  TrendingUp,
   ShieldCheck
 } from 'lucide-react';
 
@@ -38,156 +40,165 @@ export const Home = () => {
 
   return (
     <div className="space-y-6">
-      {/* MAIN BALANCE CARD */}
-      <Card gradient gradientColor="balance" className="relative overflow-hidden p-6 md:p-8">
+      {/* LUXURY BANNER */}
+      <div className="relative overflow-hidden p-6 md:p-8 rounded-[18px] bg-gradient-to-r from-[#0E3021] via-[#0A261A] to-[#061F15] border border-amber-400/25 shadow-xl shadow-[#031C12]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Wallet className="w-4 h-4" />
-                Total Portfolio Balance
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                LIVE
-              </span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 text-[#F4D06F] text-xs font-bold font-mono tracking-wider uppercase mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              Build Your Wealth • Grow Your Future
             </div>
-            
-            <div className="text-3xl md:text-5xl font-black text-white font-mono mt-2 tracking-tight">
-              {formatCurrency(balances.totalBalance)}
-            </div>
-
-            <div className="mt-2 flex items-center gap-2 text-xs text-slate-300 font-medium">
-              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <TrendingUp className="w-3.5 h-3.5" />
-                +₹850 (+7.1%)
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-400">All-time portfolio growth</span>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] tracking-tight font-sans">
+              Welcome back, <span className="gold-text-gradient">{user?.name ? user.name.split(' ')[0] : 'Investor'}</span>
+            </h2>
+            <p className="text-xs md:text-sm text-[#A7B8AE] mt-1 max-w-xl font-sans">
+              Real-time wealth management analytics and automated daily investment payouts.
+            </p>
           </div>
 
-          {/* Balance breakdown grid */}
-          <div className="grid grid-cols-3 gap-3 p-4 bg-slate-950/60 backdrop-blur-md rounded-2xl border border-slate-800/80 shrink-0">
-            <div className="pr-2 border-r border-slate-800/80">
-              <p className="text-[11px] text-slate-400 font-medium">Available</p>
-              <p className="text-sm md:text-base font-bold text-white font-mono mt-0.5">
-                {formatCurrency(balances.availableBalance)}
-              </p>
-            </div>
-            <div className="px-2 border-r border-slate-800/80">
-              <p className="text-[11px] text-slate-400 font-medium">Invested</p>
-              <p className="text-sm md:text-base font-bold text-slate-200 font-mono mt-0.5">
-                {formatCurrency(balances.totalInvested)}
-              </p>
-            </div>
-            <div className="pl-2">
-              <p className="text-[11px] text-slate-400 font-medium">Earnings</p>
-              <p className="text-sm md:text-base font-bold text-emerald-400 font-mono mt-0.5">
-                {formatCurrency(balances.totalEarnings)}
-              </p>
-            </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Button
+              variant="gold"
+              size="lg"
+              icon={Zap}
+              onClick={() => openInvestModal()}
+            >
+              Start Investing
+            </Button>
           </div>
         </div>
 
-        {/* Ambient glow decoration */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-      </Card>
+        {/* Ambient background accent */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-400/5 blur-3xl rounded-full pointer-events-none" />
+      </div>
 
-      {/* TODAY'S EARNING HIGHLIGHT CARD */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* FINANCIAL SUMMARY CARDS (FOUR CARDS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Total Balance */}
         <StatCard
-          title="Today's Earnings"
+          title="Total Balance"
+          value={formatCurrency(balances.totalBalance)}
+          subtitle="All-time portfolio value"
+          icon={Wallet}
+          iconColor="text-[#F4D06F]"
+          iconBg="bg-amber-400/10 border-amber-400/25"
+          valueColor="text-[#F4D06F]"
+        />
+
+        {/* 2. Today's Earning */}
+        <StatCard
+          title="Today's Earning"
           value={`+${formatCurrency(balances.todayEarnings)}`}
-          subtitle="Earned from active investments"
-          icon={Sparkles}
-          iconColor="text-emerald-400"
-          iconBg="bg-emerald-500/10 border-emerald-500/20"
-          trend="+100% payout standard"
+          subtitle="Automated daily return"
+          icon={TrendingUp}
+          iconColor="text-[#34D399]"
+          iconBg="bg-emerald-500/15 border-emerald-500/30"
+          valueColor="text-[#34D399]"
+          trend="+100% payout"
           trendType="up"
-          highlight={true}
         />
 
+        {/* 3. Total Investment */}
         <StatCard
-          title="Active Plans"
-          value={`${activeInvestments.length} Active`}
-          subtitle="Generating daily payouts"
+          title="Total Investment"
+          value={formatCurrency(balances.totalInvested)}
+          subtitle={`${activeInvestments.length} active plans`}
           icon={Zap}
-          iconColor="text-blue-400"
-          iconBg="bg-blue-500/10 border-blue-500/20"
-          onClick={() => navigate('/plans')}
+          iconColor="text-[#F4D06F]"
+          iconBg="bg-amber-400/10 border-amber-400/25"
+          valueColor="text-[#F8FAFC]"
         />
 
+        {/* 4. Withdrawable Balance */}
         <StatCard
-          title="Referral Rewards"
-          value={formatCurrency(balances.referralEarnings)}
-          subtitle="From 18 active team members"
+          title="Withdrawable Balance"
+          value={formatCurrency(balances.withdrawableBalance || balances.availableBalance)}
+          subtitle="Ready for instant payout"
           icon={PiggyBank}
-          iconColor="text-purple-400"
-          iconBg="bg-purple-500/10 border-purple-500/20"
-          onClick={() => navigate('/team')}
+          iconColor="text-[#34D399]"
+          iconBg="bg-emerald-500/15 border-emerald-500/30"
+          valueColor="text-[#34D399]"
         />
       </div>
 
-      {/* QUICK ACTIONS */}
+      {/* QUICK ACTIONS (SIX ELEGANT BUTTONS) */}
       <div>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Button
-            variant="emerald"
-            size="lg"
-            icon={ArrowDownLeft}
+        <h3 className="text-xs font-bold text-[#71857A] uppercase tracking-wider mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button
             onClick={() => setIsDepositOpen(true)}
-            className="w-full justify-center"
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
           >
-            Deposit
-          </Button>
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] mb-2 group-hover:scale-105 transition-transform">
+              <ArrowDownLeft className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">Add Funds</span>
+          </button>
 
-          <Button
-            variant="primary"
-            size="lg"
-            icon={Zap}
-            onClick={() => openInvestModal()}
-            className="w-full justify-center"
-          >
-            Invest
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="lg"
-            icon={ArrowUpRight}
+          <button
             onClick={() => setIsWithdrawOpen(true)}
-            className="w-full justify-center"
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
           >
-            Withdraw
-          </Button>
+            <div className="p-2.5 rounded-xl bg-amber-400/15 text-[#F4D06F] mb-2 group-hover:scale-105 transition-transform">
+              <ArrowUpRight className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">Withdraw</span>
+          </button>
 
-          <Button
-            variant="outline"
-            size="lg"
-            icon={History}
-            onClick={() => navigate('/history')}
-            className="w-full justify-center"
+          <button
+            onClick={() => openInvestModal()}
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
           >
-            History
-          </Button>
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] mb-2 group-hover:scale-105 transition-transform">
+              <Zap className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">Invest</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/bank-account')}
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-400/15 text-[#F4D06F] mb-2 group-hover:scale-105 transition-transform">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">Bank Account</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/history')}
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
+          >
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] mb-2 group-hover:scale-105 transition-transform">
+              <History className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">History</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/team')}
+            className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-400/15 text-[#F4D06F] mb-2 group-hover:scale-105 transition-transform">
+              <Users className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold">Refer & Earn</span>
+          </button>
         </div>
       </div>
 
       {/* PORTFOLIO PERFORMANCE CHART */}
-      <Card className="p-5 md:p-6">
-        <PortfolioChart />
-      </Card>
+      <PortfolioChart />
 
       {/* ACTIVE INVESTMENT & RECENT ACTIVITY GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ACTIVE INVESTMENTS */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white font-sans">Active Investment</h3>
+            <h3 className="text-base font-bold text-[#F8FAFC] font-sans">Active Investments</h3>
             <button
               onClick={() => navigate('/plans')}
-              className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5"
+              className="text-xs font-bold text-[#34D399] hover:text-[#F4D06F] flex items-center gap-0.5"
             >
               <span>Explore Plans</span>
               <ChevronRight className="w-4 h-4" />
@@ -205,8 +216,8 @@ export const Home = () => {
               ))}
             </div>
           ) : (
-            <Card className="p-8 text-center text-slate-400">
-              <p>No active investments currently running.</p>
+            <Card className="p-8 text-center text-[#71857A]">
+              <p>No active investment plans running currently.</p>
               <Button variant="primary" className="mt-3" onClick={() => openInvestModal()}>
                 Invest Now
               </Button>
@@ -217,13 +228,12 @@ export const Home = () => {
         {/* RECENT ACTIVITY */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white font-sans">Recent Activity</h3>
+            <h3 className="text-base font-bold text-[#F8FAFC] font-sans">Recent Activity</h3>
             <button
               onClick={() => navigate('/history')}
-              className="text-xs font-medium text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5"
+              className="text-xs font-bold text-[#34D399] hover:text-[#F4D06F] flex items-center gap-0.5"
             >
-              <span>View All History</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>View All →</span>
             </button>
           </div>
 

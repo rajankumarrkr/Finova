@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { PlanCard } from '../components/cards/PlanCard';
 import { investmentPlansList } from '../data/mockData';
 import { planService } from '../services/planService';
-import { ShieldCheck, Info, Sparkles, Loader2 } from 'lucide-react';
+import { Info, Sparkles } from 'lucide-react';
 
 export const Plans = () => {
   const { openInvestModal, plans: appPlans } = useApp();
@@ -40,17 +40,17 @@ export const Plans = () => {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="p-6 md:p-8 rounded-3xl balance-card-bg border border-emerald-500/20 relative overflow-hidden">
+      <div className="p-6 md:p-8 rounded-[18px] bg-gradient-to-r from-[#0E3021] via-[#0A261A] to-[#061F15] border border-amber-400/25 shadow-xl shadow-[#031C12] relative overflow-hidden">
         <div className="max-w-2xl relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/25 text-[#F4D06F] text-xs font-bold font-mono tracking-wider uppercase mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             Curated Wealth Portfolios
           </div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-white font-sans tracking-tight">
-            High-Yield Fixed Investment Plans
+          <h2 className="text-2xl md:text-3xl font-extrabold text-[#F8FAFC] font-sans tracking-tight">
+            Investment Plans
           </h2>
-          <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-            Select an automated plan to receive daily returns credited straight into your available wallet. No lock-in hidden penalties, 0% platform transaction fee.
+          <p className="text-sm text-[#A7B8AE] mt-2 leading-relaxed font-sans">
+            Choose a plan that fits your goals. Automated daily returns credited directly to your available balance.
           </p>
         </div>
       </div>
@@ -59,13 +59,13 @@ export const Plans = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-96 rounded-3xl bg-slate-900/60 border border-slate-800 p-6 flex flex-col justify-between animate-pulse">
+            <div key={i} className="h-96 rounded-[18px] bg-[#123A29] border border-emerald-500/16 p-6 flex flex-col justify-between animate-pulse">
               <div className="space-y-4">
-                <div className="h-6 w-24 bg-slate-800 rounded-full" />
-                <div className="h-8 w-40 bg-slate-800 rounded-xl" />
-                <div className="h-12 w-full bg-slate-800 rounded-2xl" />
+                <div className="h-6 w-24 bg-[#0A261A] rounded-full" />
+                <div className="h-8 w-40 bg-[#0A261A] rounded-xl" />
+                <div className="h-12 w-full bg-[#0A261A] rounded-2xl" />
               </div>
-              <div className="h-12 w-full bg-slate-800 rounded-2xl" />
+              <div className="h-12 w-full bg-[#0A261A] rounded-2xl" />
             </div>
           ))}
         </div>
@@ -92,11 +92,11 @@ export const Plans = () => {
       )}
 
       {/* Financial Disclosure */}
-      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 flex items-start gap-3">
-        <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          <strong className="text-slate-300 font-semibold">Disclosure: </strong>
-          Returns and earnings shown are based on the selected plan configuration. Actual availability and terms are subject to platform rules. All investments carry risk, and historical performance does not guarantee future results.
+      <div className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16 text-xs text-[#A7B8AE] flex items-start gap-3">
+        <Info className="w-5 h-5 text-[#71857A] shrink-0 mt-0.5" />
+        <p className="leading-relaxed font-sans">
+          <strong className="text-[#F8FAFC] font-semibold">Disclosure: </strong>
+          Returns shown are calculated based on plan terms. Daily returns credit automatically every morning.
         </p>
       </div>
     </div>

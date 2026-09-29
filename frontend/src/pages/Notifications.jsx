@@ -6,7 +6,6 @@ import { Badge } from '../components/ui/Badge';
 import { notificationService } from '../services/notificationService';
 import {
   Bell,
-  CheckCircle2,
   TrendingUp,
   Gift,
   ArrowDownLeft,
@@ -22,7 +21,7 @@ export const Notifications = () => {
     markNotificationRead
   } = useApp();
 
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const [filter, setFilter] = useState('all');
   const [notifications, setNotifications] = useState(appNotifications || []);
   const [loading, setLoading] = useState(false);
 
@@ -80,30 +79,29 @@ export const Notifications = () => {
   const getIcon = (type) => {
     switch (type) {
       case 'dollar':
-        return <TrendingUp className="w-5 h-5 text-emerald-400" />;
+        return <TrendingUp className="w-5 h-5 text-[#34D399]" />;
       case 'users':
-        return <Gift className="w-5 h-5 text-purple-400" />;
+        return <Gift className="w-5 h-5 text-[#F4D06F]" />;
       case 'trending':
-        return <TrendingUp className="w-5 h-5 text-blue-400" />;
+        return <TrendingUp className="w-5 h-5 text-[#F4D06F]" />;
       case 'arrow-down':
-        return <ArrowDownLeft className="w-5 h-5 text-amber-400" />;
+        return <ArrowDownLeft className="w-5 h-5 text-rose-300" />;
       default:
-        return <ShieldCheck className="w-5 h-5 text-emerald-400" />;
+        return <ShieldCheck className="w-5 h-5 text-[#34D399]" />;
     }
   };
 
   const getIconBg = (type) => {
     switch (type) {
       case 'dollar':
-        return 'bg-emerald-500/10 border-emerald-500/20';
+        return 'bg-emerald-500/15 border-emerald-500/30';
       case 'users':
-        return 'bg-purple-500/10 border-purple-500/20';
       case 'trending':
-        return 'bg-blue-500/10 border-blue-500/20';
+        return 'bg-amber-400/15 border-amber-400/30';
       case 'arrow-down':
-        return 'bg-amber-500/10 border-amber-500/20';
+        return 'bg-rose-500/15 border-rose-500/30';
       default:
-        return 'bg-slate-800 border-slate-700';
+        return 'bg-[#123A29] border-emerald-500/20';
     }
   };
 
@@ -112,15 +110,15 @@ export const Notifications = () => {
       {/* HEADER & FILTERS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <div className="p-3 rounded-2xl bg-[#061F15] border border-emerald-500/20 text-[#F4D06F]">
             <Bell className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white font-sans flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#F8FAFC] font-sans flex items-center gap-2">
               Notifications Center
-              {loading && <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />}
+              {loading && <Loader2 className="w-4 h-4 animate-spin text-[#F4D06F]" />}
             </h2>
-            <p className="text-xs text-slate-400">Stay updated on payouts, referrals, and security</p>
+            <p className="text-xs text-[#A7B8AE]">Stay updated on payouts, referrals, and account security</p>
           </div>
         </div>
 
@@ -135,11 +133,11 @@ export const Notifications = () => {
       </div>
 
       {/* FILTER TABS */}
-      <div className="flex items-center gap-2 p-1 bg-slate-900 border border-slate-800 rounded-2xl w-fit">
+      <div className="flex items-center gap-2 p-1 bg-[#061F15] border border-emerald-500/16 rounded-2xl w-fit">
         <button
           onClick={() => setFilter('all')}
-          className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-            filter === 'all' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            filter === 'all' ? 'bg-[#123A29] text-[#F4D06F] border border-emerald-500/30' : 'text-[#71857A]'
           }`}
         >
           All Notifications ({notifications.length})
@@ -147,8 +145,8 @@ export const Notifications = () => {
 
         <button
           onClick={() => setFilter('unread')}
-          className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-            filter === 'unread' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            filter === 'unread' ? 'bg-[#123A29] text-[#F4D06F] border border-emerald-500/30' : 'text-[#71857A]'
           }`}
         >
           Unread ({notifications.filter((n) => !n.read).length})
@@ -156,8 +154,8 @@ export const Notifications = () => {
 
         <button
           onClick={() => setFilter('read')}
-          className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-            filter === 'read' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400'
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            filter === 'read' ? 'bg-[#123A29] text-[#F4D06F] border border-emerald-500/30' : 'text-[#71857A]'
           }`}
         >
           Read ({notifications.filter((n) => n.read).length})
@@ -167,8 +165,8 @@ export const Notifications = () => {
       {/* NOTIFICATIONS CARDS LIST */}
       <div className="space-y-3">
         {loading && notifications.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 flex items-center justify-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+          <div className="p-10 text-center text-[#71857A] flex items-center justify-center gap-2 font-mono">
+            <Loader2 className="w-5 h-5 animate-spin text-[#F4D06F]" />
             <span>Loading notifications...</span>
           </div>
         ) : filteredNotifications.length > 0 ? (
@@ -178,8 +176,8 @@ export const Notifications = () => {
               onClick={() => handleMarkRead(notif.id)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                 !notif.read
-                  ? 'bg-slate-900/90 border-emerald-500/40 shadow-lg shadow-emerald-500/5'
-                  : 'glass-panel border-slate-800/80 opacity-80'
+                  ? 'bg-[#0A261A] border-amber-400/40 shadow-lg shadow-[#031C12]'
+                  : 'bg-[#061F15] border-emerald-500/16 opacity-80'
               }`}
             >
               <div className="flex items-start justify-between gap-4">
@@ -189,25 +187,25 @@ export const Notifications = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-white font-sans">{notif.title}</h4>
+                      <h4 className="text-sm font-bold text-[#F8FAFC] font-sans">{notif.title}</h4>
                       {!notif.read && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-[#F4D06F] animate-pulse" />
                       )}
                     </div>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">{notif.description}</p>
-                    <span className="text-[11px] font-mono text-slate-500 mt-2 block">{notif.timestamp}</span>
+                    <p className="text-xs text-[#A7B8AE] mt-1 leading-relaxed">{notif.description}</p>
+                    <span className="text-[11px] font-mono text-[#71857A] mt-2 block">{notif.timestamp}</span>
                   </div>
                 </div>
 
-                <Badge variant={notif.category === 'Earnings' ? 'emerald' : 'blue'} size="sm">
+                <Badge variant={notif.category === 'Earnings' ? 'emerald' : 'gold'} size="sm">
                   {notif.category}
                 </Badge>
               </div>
             </div>
           ))
         ) : (
-          <Card className="p-10 text-center text-slate-400">
-            <p className="text-sm">No notifications found in this view.</p>
+          <Card className="p-10 text-center text-[#71857A]">
+            <p className="text-sm font-sans">No notifications found in this view.</p>
           </Card>
         )}
       </div>

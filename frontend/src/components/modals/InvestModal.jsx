@@ -18,16 +18,16 @@ export const InvestModal = () => {
     investmentAmount,
     dailyEarning,
     durationDays,
-    scheduledEarnings,
-    color = 'emerald'
+    scheduledEarnings
   } = selectedPlanForInvest;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setLoading(true);
-    setTimeout(() => {
-      handleInvestSubmit(selectedPlanForInvest, investmentAmount);
-      setLoading(false);
-    }, 600);
+    const success = await handleInvestSubmit(selectedPlanForInvest, investmentAmount);
+    setLoading(false);
+    if (success) {
+      setIsInvestOpen(false);
+    }
   };
 
   const isInsufficient = user.balances.availableBalance < investmentAmount;
@@ -41,43 +41,43 @@ export const InvestModal = () => {
     >
       <div className="space-y-4">
         {/* Selected Plan Summary */}
-        <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-[#34D399]">
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-base font-bold text-white">{name}</h4>
-              <p className="text-xs text-slate-400">Fixed return payout cycle</p>
+              <h4 className="text-base font-bold text-[#F8FAFC]">{name}</h4>
+              <p className="text-xs text-[#71857A]">Fixed daily yield payout cycle</p>
             </div>
           </div>
-          <Badge variant={color} size="md">{badge}</Badge>
+          <Badge variant="gold" size="md">{badge}</Badge>
         </div>
 
         {/* Investment Details List */}
-        <div className="space-y-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+        <div className="space-y-3 p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-slate-400">Investment Amount</span>
-            <span className="font-mono font-bold text-white text-base">{formatCurrency(investmentAmount)}</span>
+            <span className="text-[#A7B8AE] font-semibold">Investment Amount</span>
+            <span className="font-mono font-bold text-[#F8FAFC] text-base">{formatCurrency(investmentAmount)}</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-slate-400">Daily Return</span>
-            <span className="font-mono font-bold text-emerald-400">+{formatCurrency(dailyEarning)} / day</span>
+            <span className="text-[#A7B8AE] font-semibold">Daily Return</span>
+            <span className="font-mono font-bold text-[#F4D06F]">+{formatCurrency(dailyEarning)} / day</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-slate-400">Plan Duration</span>
-            <span className="font-mono font-semibold text-slate-200">{durationDays} Days</span>
+            <span className="text-[#A7B8AE] font-semibold">Plan Duration</span>
+            <span className="font-mono font-semibold text-[#F8FAFC]">{durationDays} Days</span>
           </div>
-          <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
-            <span className="text-slate-300 font-medium">Total Scheduled Earnings</span>
-            <span className="font-mono font-extrabold text-emerald-300 text-lg">{formatCurrency(scheduledEarnings)}</span>
+          <div className="pt-2 border-t border-emerald-500/16 flex justify-between items-center text-sm">
+            <span className="text-[#F8FAFC] font-semibold">Total Scheduled Return</span>
+            <span className="font-mono font-extrabold text-[#34D399] text-lg">{formatCurrency(scheduledEarnings)}</span>
           </div>
         </div>
 
         {/* Balance Status Indicator */}
-        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Available Balance:</span>
-          <span className={`font-mono font-bold ${isInsufficient ? 'text-rose-400' : 'text-slate-200'}`}>
+        <div className="p-3 rounded-xl bg-[#061F15] border border-emerald-500/16 flex items-center justify-between text-xs">
+          <span className="text-[#A7B8AE] font-semibold">Available Balance:</span>
+          <span className={`font-mono font-bold ${isInsufficient ? 'text-rose-300' : 'text-[#F8FAFC]'}`}>
             {formatCurrency(user.balances.availableBalance)}
           </span>
         </div>
@@ -90,9 +90,9 @@ export const InvestModal = () => {
         )}
 
         {/* Review Notice */}
-        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 shrink-0 text-blue-400" />
-          <span>Please review the plan details before continuing. Activation is immediate upon confirmation.</span>
+        <div className="p-3 rounded-xl bg-[#061F15] border border-emerald-500/20 text-xs text-[#A7B8AE] flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 shrink-0 text-[#F4D06F]" />
+          <span>Activation is immediate upon confirmation. Payouts automatically credit daily.</span>
         </div>
 
         {/* Action Buttons */}
@@ -113,7 +113,7 @@ export const InvestModal = () => {
             disabled={isInsufficient}
             icon={Zap}
           >
-            Continue
+            Confirm Investment
           </Button>
         </div>
       </div>
