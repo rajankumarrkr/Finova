@@ -1,7 +1,21 @@
 import axios from 'axios';
 
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    // In production build, prevent accidental localhost fallback
+    if (import.meta.env.PROD && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
+      return 'https://finova-sv93.onrender.com/api';
+    }
+    return envUrl.trim();
+  }
+  return 'https://finova-sv93.onrender.com/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://finova-sv93.onrender.com/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -66,7 +80,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshUrl = `${import.meta.env.VITE_API_URL || 'https://finova-sv93.onrender.com/api'}/auth/refresh`;
+        const refreshUrl = `${API_BASE_URL}/auth/refresh`;
         const response = await axios.post(
           refreshUrl,
           {},
