@@ -4,6 +4,7 @@ import { connectDB, closeDB } from './config/db.js';
 import { initDailyEarningsCron } from './jobs/dailyEarnings.job.js';
 import { validateEncryptionKey } from './utils/encryption.js';
 import { validateCloudinaryConfig } from './config/cloudinary.js';
+import { bootstrapSystem } from './utils/bootstrap.js';
 
 const startServer = async () => {
   try {
@@ -13,6 +14,9 @@ const startServer = async () => {
 
     // 1. Connect MongoDB
     await connectDB();
+
+    // 1.1 Bootstrap System Defaults (Admin Account, Plans & Settings)
+    await bootstrapSystem();
 
     // 2. Initialize Daily Earnings Cron Engine
     initDailyEarningsCron();
