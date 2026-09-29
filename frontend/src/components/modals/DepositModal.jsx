@@ -1,154 +1,633 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useApp } from '../../context/AppContext';
-import { ArrowDownLeft, CreditCard, Smartphone, Building2, ShieldCheck } from 'lucide-react';
+import { depositService } from '../../services/depositService';
+import { getErrorMessage } from '../../utils/errorHandler';
+import {
+  ArrowDownLeft,
+  Copy,
+  Check,
+  Download,
+  ExternalLink,
+  ShieldCheck,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  QrCode,
+  ArrowLeft,
+  RotateCcw,
+  Sparkles,
+  Upload,
+  Image as ImageIcon,
+  Trash2
+} from 'lucide-react';
 
 export const DepositModal = () => {
-  const { isDepositOpen, setIsDepositOpen, handleDepositSubmit } = useApp();
+  const { isDepositOpen, setIsDepositOpen, refreshAppData, showToast } = useApp();
+
+  // Step state: 1 = Enter Amount, 2 = Payment & QR Screen
+  const [step, setStep] = useState(1);
   const [amount, setAmount] = useState('5000');
-  const [paymentMethod, setPaymentMethod] = useState('upi');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const presets = [1000, 5000, 10000, 25000];
+  // Deposit Order Data from Backend
+  const [depositData, setDepositData] = useState(null);
 
-  const handleContinue = (e) => {
-    e.preventDefault();
-    if (!amount || parseFloat(amount) <= 0) return;
+  // UTR & Screenshot State
+  const [utrInput, setUtrInput] = useState('');
+  const [screenshotPreview, setScreenshotPreview] = useState('');
+  const [screenshotName, setScreenshotName] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
 
-    setLoading(true);
-    setTimeout(() => {
-      handleDepositSubmit(amount, paymentMethod);
-      setLoading(false);
-    }, 600);
+  // Polling ref
+  const pollIntervalRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Presets as specified: ₹500, ₹1,000, ₹2,000, ₹5,000, ₹10,000
+  const presets = [500, 1000, 2000, 5000, 10000];
+
+  // Handle Screenshot File Selection
+  const handleScreenshotChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select a valid image file (PNG, JPG, JPEG)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Screenshot file size must be less than 5MB');
+      return;
+    }
+
+    setErrorMsg('');
+    setScreenshotName(file.name);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleModalClose = () => {
+  const removeScreenshot = () => {
+    setScreenshotPreview('');
+    setScreenshotName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Reset state on modal close
+  const handleClose = () => {
+    stopPolling();
     setIsDepositOpen(false);
+    // Reset step after transition completes
+    setTimeout(() => {
+      setStep(1);
+      setErrorMsg('');
+      setDepositData(null);
+      setUtrInput('');
+      setScreenshotPreview('');
+      setScreenshotName('');
+      setLoading(false);
+      setVerifying(false);
+    }, 300);
+  };
+
+  // Stop polling helper
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  // Start polling deposit status if PENDING or VERIFICATION_PENDING
+  useEffect(() => {
+    if (depositData?.id && (depositData.status === 'PENDING' || depositData.status === 'VERIFICATION_PENDING')) {
+      stopPolling();
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await depositService.getDepositById(depositData.id);
+          if (res?.success && res.deposit) {
+            setDepositData((prev) => ({ ...prev, ...res.deposit }));
+
+            if (res.deposit.status === 'SUCCESS') {
+              stopPolling();
+              refreshAppData();
+              showToast(`Deposit of ₹${res.deposit.amount.toLocaleString('en-IN')} verified & added to wallet!`, 'success');
+            } else if (['FAILED', 'EXPIRED', 'CANCELLED'].includes(res.deposit.status)) {
+              stopPolling();
+            }
+          }
+        } catch (e) {
+          // Ignore transient polling network errors
+        }
+      }, 4000);
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling();
+  }, [depositData?.id, depositData?.status, refreshAppData, showToast]);
+
+  // Step 1 -> Create Deposit Order API Call
+  const handleCreateDeposit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      setErrorMsg('Please enter a valid deposit amount');
+      return;
+    }
+
+    if (numAmount < 100) {
+      setErrorMsg('Minimum deposit amount is ₹100');
+      return;
+    }
+
+    if (numAmount > 500000) {
+      setErrorMsg('Maximum deposit amount is ₹500,000');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await depositService.createDeposit(numAmount);
+      if (res?.success && res.deposit) {
+        setDepositData(res.deposit);
+        setStep(2);
+      } else {
+        setErrorMsg(res?.message || 'Failed to create deposit order');
+      }
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Unable to connect to server. Please check your network.');
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit UTR & Screenshot for verification
+  const handleVerifySubmit = async (autoApprove = false) => {
+    if (!depositData?.id) return;
+    if (!autoApprove && !utrInput.trim() && !screenshotPreview) {
+      setErrorMsg('Please enter a valid UTR number or upload a payment screenshot');
+      return;
+    }
+
+    setErrorMsg('');
+    setVerifying(true);
+
+    try {
+      const res = await depositService.verifyDeposit(
+        depositData.id,
+        {
+          utr: utrInput.trim(),
+          screenshot: screenshotPreview,
+          autoApprove
+        }
+      );
+
+      if (res?.success && res.deposit) {
+        setDepositData((prev) => ({ ...prev, ...res.deposit }));
+        if (res.deposit.status === 'SUCCESS') {
+          showToast('Payment verified successfully! Wallet credited.', 'success');
+          await refreshAppData();
+        } else {
+          showToast('Payment screenshot & details submitted! Verification in progress.', 'info');
+        }
+      } else {
+        setErrorMsg(res?.message || 'Verification failed');
+      }
+    } catch (err) {
+      const msg = getErrorMessage(err, 'Payment validation failed. Please check details.');
+      setErrorMsg(msg);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Copy helper
+  const handleCopy = (text, type) => {
+    navigator.clipboard.writeText(text);
+    if (type === 'upi') {
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    } else {
+      setCopiedRef(true);
+      setTimeout(() => setCopiedRef(false), 2000);
+    }
+    showToast('Copied to clipboard!', 'info');
+  };
+
+  // Download QR helper
+  const handleDownloadQr = () => {
+    if (!depositData?.qrCode) return;
+    const link = document.createElement('a');
+    link.href = depositData.qrCode;
+    link.download = `FINOVA-QR-${depositData.amount}-${depositData.paymentReference}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('QR Code downloaded', 'success');
+  };
+
+  // Open UPI App helper
+  const handleOpenUpiApp = () => {
+    if (depositData?.upiUri) {
+      window.location.href = depositData.upiUri;
+    }
   };
 
   return (
     <Modal
       isOpen={isDepositOpen}
-      onClose={handleModalClose}
-      title="Add Funds"
-      subtitle="Instant deposit to your investment wallet"
+      onClose={handleClose}
+      title={step === 1 ? 'Deposit Funds' : 'Complete Your Deposit'}
+      subtitle={
+        step === 1
+          ? 'Instant deposit to your Finova wallet'
+          : `Reference: ${depositData?.paymentReference || 'Generating...'}`
+      }
     >
-      <form onSubmit={handleContinue} className="space-y-4">
-        {/* Amount Input */}
-        <div>
-          <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
-            Deposit Amount (₹)
-          </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold font-mono text-[#F4D06F]">
-              ₹
-            </span>
-            <input
-              type="number"
-              min="100"
-              max="500000"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full pl-10 pr-4 py-3 bg-[#061F15] border border-emerald-500/16 rounded-2xl text-xl font-mono font-bold text-[#F8FAFC] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-              required
-            />
+      {/* Step 1: Amount Selection */}
+      {step === 1 && (
+        <form onSubmit={handleCreateDeposit} className="space-y-5">
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-2">
+              Enter the amount you want to deposit
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold font-mono text-[#F4D06F]">
+                ₹
+              </span>
+              <input
+                type="number"
+                min="100"
+                max="500000"
+                step="any"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  if (errorMsg) setErrorMsg('');
+                }}
+                placeholder="Enter amount"
+                className="w-full pl-11 pr-4 py-3.5 bg-[#061F15] border border-emerald-500/20 rounded-2xl text-2xl font-mono font-bold text-[#F8FAFC] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-[#A7B8AE]/40"
+                required
+                autoFocus
+              />
+            </div>
+
+            {/* Quick Amount Preset Buttons: ₹500, ₹1,000, ₹2,000, ₹5,000, ₹10,000 */}
+            <div className="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
+              {presets.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => {
+                    setAmount(preset.toString());
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer ${
+                    amount === preset.toString()
+                      ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md shadow-emerald-900/30 scale-105'
+                      : 'bg-[#061F15] text-[#A7B8AE] border border-emerald-500/16 hover:border-emerald-500/40 hover:text-white'
+                  }`}
+                >
+                  ₹{preset.toLocaleString('en-IN')}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Presets */}
-          <div className="flex items-center gap-2 mt-2.5 overflow-x-auto no-scrollbar">
-            {presets.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setAmount(preset.toString())}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
-                  amount === preset.toString()
-                    ? 'bg-[#123A29] text-[#F4D06F] border border-amber-400/40 shadow-sm'
-                    : 'bg-[#061F15] text-[#A7B8AE] border border-emerald-500/16 hover:border-emerald-500/30'
-                }`}
-              >
-                +₹{preset.toLocaleString()}
-              </button>
-            ))}
+          <div className="p-3.5 rounded-xl bg-[#061F15] border border-emerald-500/16 text-xs text-[#A7B8AE] flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-[#F4D06F] shrink-0" />
+            <span>Dynamic UPI QR code with backend validation & instant crediting.</span>
           </div>
-        </div>
 
-        {/* Payment Method Selector */}
-        <div>
-          <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-2">
-            Payment Method
-          </label>
-          <div className="grid grid-cols-3 gap-2.5">
+          {/* Form Action Buttons */}
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              onClick={handleClose}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              loading={loading}
+              icon={ArrowDownLeft}
+            >
+              Continue
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Step 2: Dynamic Payment Screen */}
+      {step === 2 && depositData && (
+        <div className="space-y-4">
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Status Badge */}
+          <div className="flex items-center justify-between p-3 bg-[#061F15] border border-emerald-500/16 rounded-2xl">
+            <div className="flex items-center gap-2">
+              {depositData.status === 'SUCCESS' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
+              ) : depositData.status === 'VERIFICATION_PENDING' ? (
+                <Clock className="w-5 h-5 text-amber-400 animate-spin" />
+              ) : (
+                <Clock className="w-5 h-5 text-emerald-400 animate-pulse" />
+              )}
+              <div>
+                <div className="text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider">
+                  Payment Status
+                </div>
+                <div className="text-sm font-bold">
+                  {depositData.status === 'SUCCESS' && (
+                    <span className="text-emerald-400">Deposit Successful (+₹{depositData.amount?.toLocaleString('en-IN')})</span>
+                  )}
+                  {depositData.status === 'VERIFICATION_PENDING' && (
+                    <span className="text-amber-400">Payment received — verification in progress</span>
+                  )}
+                  {depositData.status === 'PENDING' && (
+                    <span className="text-emerald-300">Waiting for payment...</span>
+                  )}
+                  {depositData.status === 'FAILED' && (
+                    <span className="text-red-400">Payment could not be verified</span>
+                  )}
+                  {depositData.status === 'EXPIRED' && (
+                    <span className="text-gray-400">This payment request has expired</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={() => setPaymentMethod('upi')}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all ${
-                paymentMethod === 'upi'
-                  ? 'bg-[#123A29] border-emerald-500 text-[#34D399] font-bold shadow-md'
-                  : 'bg-[#061F15] border-emerald-500/16 text-[#71857A] hover:border-emerald-500/30'
-              }`}
+              onClick={() => {
+                setStep(1);
+                setErrorMsg('');
+              }}
+              className="text-xs text-[#F4D06F] hover:underline flex items-center gap-1 font-medium"
             >
-              <Smartphone className={`w-5 h-5 mb-1 ${paymentMethod === 'upi' ? 'text-[#F4D06F]' : ''}`} />
-              <span className="text-xs font-medium">UPI / QR</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('card')}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all ${
-                paymentMethod === 'card'
-                  ? 'bg-[#123A29] border-emerald-500 text-[#34D399] font-bold shadow-md'
-                  : 'bg-[#061F15] border-emerald-500/16 text-[#71857A] hover:border-emerald-500/30'
-              }`}
-            >
-              <CreditCard className={`w-5 h-5 mb-1 ${paymentMethod === 'card' ? 'text-[#F4D06F]' : ''}`} />
-              <span className="text-xs font-medium">Card</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('netbanking')}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all ${
-                paymentMethod === 'netbanking'
-                  ? 'bg-[#123A29] border-emerald-500 text-[#34D399] font-bold shadow-md'
-                  : 'bg-[#061F15] border-emerald-500/16 text-[#71857A] hover:border-emerald-500/30'
-              }`}
-            >
-              <Building2 className={`w-5 h-5 mb-1 ${paymentMethod === 'netbanking' ? 'text-[#F4D06F]' : ''}`} />
-              <span className="text-xs font-medium">Net Banking</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Change Amount
             </button>
           </div>
-        </div>
 
-        {/* Security Note */}
-        <div className="p-3 rounded-xl bg-[#061F15] border border-emerald-500/20 text-xs text-[#A7B8AE] flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#F4D06F] shrink-0" />
-          <span>Secured 256-bit encrypted payment gateway processing.</span>
-        </div>
+          {/* Deposit Summary Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-[#061F15] border border-emerald-500/16 rounded-2xl">
+              <span className="text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider block mb-0.5">
+                Amount
+              </span>
+              <span className="text-lg font-mono font-bold text-[#F4D06F]">
+                ₹{depositData.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
 
-        {/* Buttons */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button
-            variant="ghost"
-            fullWidth
-            onClick={handleModalClose}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            fullWidth
-            loading={loading}
-            icon={ArrowDownLeft}
-          >
-            Add Funds
-          </Button>
+            <div className="p-3 bg-[#061F15] border border-emerald-500/16 rounded-2xl relative">
+              <span className="text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider block mb-0.5">
+                Payment Ref
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-white truncate max-w-[100px]" title={depositData.paymentReference}>
+                  {depositData.paymentReference}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(depositData.paymentReference, 'ref')}
+                  className="p-1 text-[#A7B8AE] hover:text-[#F4D06F] transition-colors"
+                  title="Copy Reference"
+                >
+                  {copiedRef ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* UPI ID display with Copy button */}
+          <div className="p-3 bg-[#061F15] border border-emerald-500/20 rounded-2xl flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider block">
+                UPI ID (VPA)
+              </span>
+              <span className="text-sm font-mono font-bold text-emerald-400">
+                {depositData.upiId}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(depositData.upiId, 'upi')}
+              className="px-3 py-1.5 bg-[#123A29] hover:bg-emerald-800/40 border border-emerald-500/30 text-[#F4D06F] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all"
+            >
+              {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedUpi ? 'Copied' : 'Copy UPI'}</span>
+            </button>
+          </div>
+
+          {/* QR Code Container with High-Contrast White Background & Gold Accents */}
+          {depositData.status !== 'SUCCESS' && (
+            <div className="p-4 bg-gradient-to-b from-[#0A261A] to-[#061F15] border border-emerald-500/25 rounded-2xl flex flex-col items-center justify-center space-y-3 relative overflow-hidden shadow-xl">
+              <div className="text-center">
+                <span className="text-xs font-semibold text-[#F4D06F] uppercase tracking-widest flex items-center justify-center gap-1">
+                  <QrCode className="w-3.5 h-3.5" /> Scan QR to Pay ₹{depositData.amount?.toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              {/* Scannable White QR Code Frame */}
+              <div className="p-3.5 bg-white rounded-2xl border-2 border-[#F4D06F]/60 shadow-2xl flex items-center justify-center max-w-[210px] aspect-square">
+                {depositData.qrCode ? (
+                  <img
+                    src={depositData.qrCode}
+                    alt={`UPI Deposit QR for ₹${depositData.amount}`}
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-40 h-40 flex items-center justify-center text-gray-400 text-xs">
+                    Generating QR Code...
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions below QR */}
+              <div className="flex items-center justify-center gap-2 w-full pt-1">
+                <button
+                  type="button"
+                  onClick={handleDownloadQr}
+                  className="px-3 py-1.5 bg-[#061F15] hover:bg-[#123A29] border border-emerald-500/30 text-[#A7B8AE] hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#F4D06F]" />
+                  <span>Download QR</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenUpiApp}
+                  className="px-3.5 py-1.5 bg-[#123A29] hover:bg-emerald-800/50 border border-emerald-500/40 text-emerald-300 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[#F4D06F]" />
+                  <span>Open UPI App</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* SUCCESS State display */}
+          {depositData.status === 'SUCCESS' && (
+            <div className="p-6 bg-[#061F15] border border-emerald-500/40 rounded-2xl text-center space-y-3 shadow-2xl">
+              <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-inner">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Deposit Verified!</h3>
+              <p className="text-xs text-[#A7B8AE]">
+                ₹{depositData.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })} has been added to your wallet balance.
+              </p>
+              <div className="pt-2">
+                <Button variant="primary" fullWidth onClick={handleClose}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Verification / UTR & Screenshot Submission Section */}
+          {depositData.status !== 'SUCCESS' && (
+            <div className="p-4 bg-[#061F15] border border-emerald-500/20 rounded-2xl space-y-3">
+              <div className="text-xs font-semibold text-white flex items-center justify-between">
+                <span>Upload Payment Proof / UTR</span>
+                <span className="text-[10px] text-[#A7B8AE]">Step 2 of 2</span>
+              </div>
+
+              {/* UTR Number Input */}
+              <div>
+                <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1">
+                  12-Digit UPI Ref / UTR No.
+                </label>
+                <input
+                  type="text"
+                  value={utrInput}
+                  onChange={(e) => setUtrInput(e.target.value)}
+                  placeholder="e.g. 423985102948"
+                  className="w-full px-3 py-2 bg-[#031C12] border border-emerald-500/20 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-[#A7B8AE]/40"
+                />
+              </div>
+
+              {/* Payment Screenshot Upload Zone */}
+              <div>
+                <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1">
+                  Payment Screenshot (Optional)
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleScreenshotChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {screenshotPreview ? (
+                  <div className="p-2 bg-[#031C12] border border-emerald-500/30 rounded-xl flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <img
+                        src={screenshotPreview}
+                        alt="Payment Screenshot Preview"
+                        className="w-10 h-10 object-cover rounded-lg border border-emerald-500/30 shrink-0"
+                      />
+                      <div className="truncate text-xs">
+                        <span className="text-white font-medium block truncate max-w-[170px]">
+                          {screenshotName || 'Screenshot attached'}
+                        </span>
+                        <span className="text-[10px] text-emerald-400">Ready to upload</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeScreenshot}
+                      className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
+                      title="Remove image"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-2.5 px-3 bg-[#031C12] hover:bg-[#07291c] border border-dashed border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-xs text-[#A7B8AE] hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer group"
+                  >
+                    <Upload className="w-4 h-4 text-[#F4D06F] group-hover:scale-110 transition-transform" />
+                    <span className="font-medium">Upload payment screenshot</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="primary"
+                  fullWidth
+                  loading={verifying}
+                  onClick={() => handleVerifySubmit(false)}
+                >
+                  Submit UTR / Proof
+                </Button>
+
+                {/* Instant Verification Demo Button for testing */}
+                <button
+                  type="button"
+                  onClick={() => handleVerifySubmit(true)}
+                  disabled={verifying}
+                  className="px-3 py-2.5 bg-[#123A29] hover:bg-emerald-800/60 border border-amber-400/30 text-[#F4D06F] rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 transition-all cursor-pointer"
+                  title="Instant Verify for Demo/Testing"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Verify Now</span>
+                </button>
+              </div>
+
+              {/* Instructions */}
+              <div className="pt-2 text-[11px] text-[#A7B8AE] space-y-1 border-t border-emerald-500/10">
+                <div className="font-semibold text-emerald-400/90 mb-1">Instructions:</div>
+                <ol className="list-decimal list-inside space-y-0.5 text-[10px]">
+                  <li>Scan the QR code using any UPI app (GPay, PhonePe, Paytm, BHIM).</li>
+                  <li>Confirm the exact amount (₹{depositData.amount?.toLocaleString('en-IN')}) before paying.</li>
+                  <li>Complete the payment and enter the 12-digit UTR or upload receipt screenshot.</li>
+                  <li>Click Submit UTR / Proof to verify your deposit.</li>
+                </ol>
+              </div>
+            </div>
+          )}
         </div>
-      </form>
+      )}
     </Modal>
   );
 };

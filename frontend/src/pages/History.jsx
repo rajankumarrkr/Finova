@@ -5,7 +5,8 @@ import { Card } from '../components/ui/Card';
 import { Tabs } from '../components/ui/Tabs';
 import { TransactionItem } from '../components/cards/TransactionItem';
 import { transactionService } from '../services/transactionService';
-import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft, Loader2 } from 'lucide-react';
+import { depositService } from '../services/depositService';
+import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft, Loader2, Wallet } from 'lucide-react';
 
 export const History = () => {
   const { transactions: appTransactions } = useApp();
@@ -18,7 +19,7 @@ export const History = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [transactions, setTransactions] = useState(appTransactions || []);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -30,32 +31,25 @@ export const History = () => {
 
   useEffect(() => {
     let isMounted = true;
+
     const fetchTxns = async () => {
       setLoading(true);
       try {
-        const query = {};
-        if (activeTab !== 'all') {
-          const tabCatMap = {
-            investments: 'Investments',
-            earnings: 'Earnings',
-            withdrawals: 'Withdrawals',
-            referrals: 'Referrals',
-          };
-          query.category = tabCatMap[activeTab] || activeTab;
-        }
-        if (statusFilter !== 'all') {
-          query.status = statusFilter;
-        }
-        if (searchQuery.trim()) {
-          query.search = searchQuery.trim();
-        }
+        // Fetch wallet transactions and deposit requests in parallel
+        const [txnRes, depRes] = await Promise.allSettled([
+          transactionService.getTransactions({ limit: 100 }),
+          depositService.getDepositHistory({ limit: 100 })
+        ]);
 
-        const res = await transactionService.getTransactions(query);
-        if (isMounted && res?.success) {
-          const rawList = res.data?.transactions || (Array.isArray(res.data) ? res.data : []);
-          const formatted = rawList.map((t) => {
+        let combined = [];
+
+        // 1. Process Wallet Ledger Transactions
+        if (txnRes.status === 'fulfilled' && txnRes.value?.success) {
+          const rawList = txnRes.value.data?.transactions || (Array.isArray(txnRes.value.data) ? txnRes.value.data : []);
+          const formattedTxns = rawList.map((t) => {
             let category = 'Investments';
-            if (t.type === 'daily_earning' || t.type === 'earnings') category = 'Earnings';
+            if (t.type === 'deposit' || t.type === 'deposits') category = 'Deposits';
+            else if (t.type === 'daily_earning' || t.type === 'earnings') category = 'Earnings';
             else if (t.type === 'withdrawal' || t.type === 'withdrawals') category = 'Withdrawals';
             else if (t.type === 'referral_bonus' || t.type === 'referrals') category = 'Referrals';
 
@@ -65,16 +59,81 @@ export const History = () => {
               title: t.reference || t.type?.replace('_', ' ')?.toUpperCase() || 'Transaction',
               amount: t.amount,
               isPositive: t.direction === 'credit',
-              date: t.createdAt ? new Date(t.createdAt).toLocaleString() : 'Recently',
+              date: t.createdAt ? new Date(t.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently',
               rawDate: t.createdAt,
               status: t.status ? t.status.charAt(0).toUpperCase() + t.status.slice(1) : 'Completed',
               category,
               reference: t.transactionId || t.reference || '',
             };
           });
-          setTransactions(formatted);
+          combined.push(...formattedTxns);
+        }
+
+        // 2. Process Deposit Orders (including PENDING / VERIFICATION_PENDING)
+        if (depRes.status === 'fulfilled' && depRes.value?.success && Array.isArray(depRes.value.deposits)) {
+          const formattedDeposits = depRes.value.deposits.map((d) => ({
+            id: d.id || d._id,
+            type: 'deposit',
+            title: `UPI Deposit (${d.paymentReference})`,
+            amount: d.amount,
+            isPositive: true,
+            date: d.createdAt ? new Date(d.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently',
+            rawDate: d.createdAt,
+            status: d.status === 'SUCCESS' ? 'Completed' : d.status === 'VERIFICATION_PENDING' || d.status === 'PENDING' ? 'Processing' : 'Failed',
+            category: 'Deposits',
+            reference: d.paymentReference,
+          }));
+
+          for (const dep of formattedDeposits) {
+            // Avoid duplicates if completed deposit is already in transaction ledger
+            if (!combined.some((t) => t.reference === dep.reference || t.id === dep.id)) {
+              combined.push(dep);
+            }
+          }
+        }
+
+        // Fallback to appTransactions if backend returned empty array
+        if (combined.length === 0 && appTransactions && appTransactions.length > 0) {
+          combined = [...appTransactions];
+        }
+
+        // 3. Client-Side Tab Filtering
+        if (activeTab !== 'all') {
+          const tabCatMap = {
+            deposits: 'Deposits',
+            investments: 'Investments',
+            earnings: 'Earnings',
+            withdrawals: 'Withdrawals',
+            referrals: 'Referrals',
+          };
+          const targetCat = tabCatMap[activeTab] || activeTab;
+          combined = combined.filter((t) => t.category.toLowerCase() === targetCat.toLowerCase());
+        }
+
+        // 4. Client-Side Status Filtering
+        if (statusFilter !== 'all') {
+          combined = combined.filter((t) => t.status.toLowerCase() === statusFilter.toLowerCase());
+        }
+
+        // 5. Client-Side Search Filtering
+        if (searchQuery.trim()) {
+          const s = searchQuery.trim().toLowerCase();
+          combined = combined.filter(
+            (t) =>
+              t.title.toLowerCase().includes(s) ||
+              (t.reference && t.reference.toLowerCase().includes(s)) ||
+              t.amount.toString().includes(s)
+          );
+        }
+
+        // Sort latest first
+        combined.sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0));
+
+        if (isMounted) {
+          setTransactions(combined);
         }
       } catch (err) {
+        console.error('Error fetching transaction history:', err);
         if (isMounted && appTransactions) {
           setTransactions(appTransactions);
         }
@@ -91,6 +150,7 @@ export const History = () => {
 
   const tabs = [
     { id: 'all', label: 'All Activity', count: transactions.length },
+    { id: 'deposits', label: 'Deposits', icon: Wallet, count: transactions.filter((t) => t.category === 'Deposits').length },
     { id: 'investments', label: 'Investments', icon: ArrowUpRight, count: transactions.filter((t) => t.category === 'Investments').length },
     { id: 'earnings', label: 'Earnings', icon: TrendingUp, count: transactions.filter((t) => t.category === 'Earnings').length },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowDownLeft, count: transactions.filter((t) => t.category === 'Withdrawals').length },

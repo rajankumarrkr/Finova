@@ -6,7 +6,9 @@ import {
   createPlan,
   updatePlan,
   getWithdrawals,
-  updateWithdrawalStatus
+  updateWithdrawalStatus,
+  getDeposits,
+  updateDepositStatus
 } from '../controllers/admin.controller.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/admin.js';
@@ -21,6 +23,9 @@ router.patch('/users/:id/status', updateUserStatus);
 
 router.post('/plans', createPlan);
 router.patch('/plans/:id', updatePlan);
+
+router.get('/deposits', getDeposits);
+router.patch('/deposits/:id/status', updateDepositStatus);
 
 router.get('/withdrawals', getWithdrawals);
 router.patch('/withdrawals/:id/status', updateWithdrawalStatus);

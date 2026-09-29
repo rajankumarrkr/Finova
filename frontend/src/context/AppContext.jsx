@@ -110,6 +110,7 @@ export const AppProvider = ({ children }) => {
           email: u.email || prev.email,
           phone: u.phone || prev.phone,
           avatar: u.avatar || prev.avatar,
+          role: u.role || prev.role || 'user',
           referralCode: u.referralCode || prev.referralCode,
           kycStatus: u.kycStatus || 'Verified',
           memberSince: u.memberSince ? new Date(u.memberSince).getFullYear().toString() : '2026',

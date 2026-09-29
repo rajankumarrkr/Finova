@@ -23,6 +23,7 @@ import { BankAccount } from './pages/BankAccount';
 import { Notifications } from './pages/Notifications';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Admin } from './pages/Admin';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useApp();
@@ -135,6 +136,7 @@ function AppContent() {
             />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/admin" element={<Admin />} />
             {/* Catch-all fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

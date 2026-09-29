@@ -25,6 +25,7 @@ import withdrawalRoutes from './routes/withdrawal.routes.js';
 import bankRoutes from './routes/bank.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import depositRoutes from './routes/deposit.routes.js';
 
 const app = express();
 
@@ -113,6 +114,8 @@ app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/bank-accounts', bankRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/deposits', depositRoutes);
+app.use('/api/deposit', depositRoutes);
 
 // 404 Route Not Found Handler
 app.use((req, res) => {

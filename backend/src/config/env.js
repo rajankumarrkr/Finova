@@ -24,5 +24,8 @@ export const env = {
   BANK_ENCRYPTION_KEY: process.env.BANK_ENCRYPTION_KEY || '0a856fdabc1f5827005117f73131eeb16578a3f7831bf748c40f0ff6cf69e7fe',
 
   COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
-  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@finova.app'
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@finova.app',
+
+  FINOVA_UPI_ID: process.env.FINOVA_UPI_ID || 'finova@upi',
+  FINOVA_MERCHANT_NAME: process.env.FINOVA_MERCHANT_NAME || 'FINOVA'
 };

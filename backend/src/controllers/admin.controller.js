@@ -2,10 +2,12 @@ import { User } from '../models/User.js';
 import { Investment } from '../models/Investment.js';
 import { InvestmentPlan } from '../models/InvestmentPlan.js';
 import { Withdrawal } from '../models/Withdrawal.js';
+import { Deposit } from '../models/Deposit.js';
 import { Transaction } from '../models/Transaction.js';
 import { Earning } from '../models/Earning.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { WithdrawalService } from '../services/withdrawal.service.js';
+import { DepositService } from '../services/deposit.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 
 export const getAdminDashboard = async (req, res, next) => {
@@ -188,6 +190,63 @@ export const updateWithdrawalStatus = async (req, res, next) => {
     });
 
     return ApiResponse.success(res, `Withdrawal status updated to ${status}`, withdrawal);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDeposits = async (req, res, next) => {
+  try {
+    const { status, search } = req.query;
+    const query = {};
+    if (status) query.status = status;
+
+    let deposits = await Deposit.find(query)
+      .sort({ createdAt: -1 })
+      .populate('user', 'name email phone');
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      deposits = deposits.filter((d) => {
+        const userName = d.user?.name?.toLowerCase() || '';
+        const userEmail = d.user?.email?.toLowerCase() || '';
+        const userPhone = d.user?.phone?.toLowerCase() || '';
+        const ref = d.paymentReference?.toLowerCase() || '';
+        const utr = d.utr?.toLowerCase() || '';
+        return (
+          userName.includes(searchLower) ||
+          userEmail.includes(searchLower) ||
+          userPhone.includes(searchLower) ||
+          ref.includes(searchLower) ||
+          utr.includes(searchLower)
+        );
+      });
+    }
+
+    return ApiResponse.success(res, 'Admin deposit requests retrieved', deposits);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateDepositStatus = async (req, res, next) => {
+  try {
+    const { status, utr } = req.body;
+    const { id } = req.params;
+
+    if (status === 'SUCCESS') {
+      const result = await DepositService.adminApproveDeposit({ depositId: id, utr });
+      return ApiResponse.success(res, 'Deposit approved & credited successfully', result.deposit);
+    } else if (status === 'FAILED') {
+      const deposit = await Deposit.findByIdAndUpdate(
+        id,
+        { $set: { status: 'FAILED' } },
+        { new: true }
+      );
+      return ApiResponse.success(res, 'Deposit marked as failed', deposit);
+    }
+
+    return ApiResponse.error(res, 'Invalid deposit status action', 'BAD_REQUEST', 400);
   } catch (error) {
     next(error);
   }
