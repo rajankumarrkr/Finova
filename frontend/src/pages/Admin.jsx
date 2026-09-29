@@ -288,37 +288,64 @@ export const Admin = () => {
     }
   };
 
+  // Status badge helper
+  const StatusBadge = ({ status, type = 'deposit' }) => {
+    let colorClass = '';
+    if (type === 'deposit') {
+      colorClass = status === 'SUCCESS'
+        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+        : ['VERIFICATION_PENDING', 'PENDING'].includes(status)
+        ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+        : 'bg-red-500/20 text-red-400 border-red-500/30';
+    } else if (type === 'withdrawal') {
+      colorClass = status === 'completed'
+        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+        : status === 'pending'
+        ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
+        : 'bg-red-500/20 text-red-400 border-red-500/30';
+    } else {
+      colorClass = status === 'active'
+        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+        : 'bg-red-500/20 text-red-400 border-red-500/30';
+    }
+    return (
+      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${colorClass}`}>
+        {(status || 'UNKNOWN').toUpperCase().replace('_', ' ')}
+      </span>
+    );
+  };
+
   // Render Admin Login Form if not logged in as Admin
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#031C12] text-slate-100 flex items-center justify-center p-4 antialiased">
-        <div className="w-full max-w-md bg-[#0A261A] border border-emerald-500/30 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+      <div className="min-h-screen bg-[#031C12] text-slate-100 flex items-center justify-center p-3 sm:p-4 antialiased">
+        <div className="w-full max-w-md bg-[#0A261A] border border-emerald-500/30 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 shadow-2xl relative overflow-hidden">
           {/* Subtle Glow Accent */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-[#F4D06F]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header Icon */}
           <div className="flex flex-col items-center text-center space-y-3 mb-6">
-            <div className="w-16 h-16 bg-[#123A29] border border-amber-400/40 rounded-2xl flex items-center justify-center text-[#F4D06F] shadow-lg">
-              <ShieldAlert className="w-8 h-8" />
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#123A29] border border-amber-400/40 rounded-2xl flex items-center justify-center text-[#F4D06F] shadow-lg">
+              <ShieldAlert className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white font-mono">FINOVA ADMIN</h1>
-              <p className="text-xs text-[#A7B8AE] mt-1">Authorized Administration Desk</p>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-mono">FINOVA ADMIN</h1>
+              <p className="text-[10px] sm:text-xs text-[#A7B8AE] mt-1">Authorized Administration Desk</p>
             </div>
           </div>
 
           {loginError && (
-            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+            <div className="mb-5 p-3 sm:p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] sm:text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{loginError}</span>
             </div>
           )}
 
           {/* Admin Login Form */}
-          <form onSubmit={handleAdminLogin} className="space-y-4">
+          <form onSubmit={handleAdminLogin} className="space-y-3.5 sm:space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
+              <label className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
                 Admin Mobile / Email
               </label>
               <input
@@ -326,13 +353,13 @@ export const Admin = () => {
                 value={adminIdentifier}
                 onChange={(e) => setAdminIdentifier(e.target.value)}
                 placeholder="admin@finova.app"
-                className="w-full px-4 py-3 bg-[#061F15] border border-emerald-500/20 rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
+              <label className="block text-[10px] sm:text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
                 Admin Security Password
               </label>
               <input
@@ -340,7 +367,7 @@ export const Admin = () => {
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-[#061F15] border border-emerald-500/20 rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 required
               />
             </div>
@@ -348,7 +375,7 @@ export const Admin = () => {
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-2xl text-sm transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl sm:rounded-2xl text-sm transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loginLoading ? (
                 <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -379,21 +406,21 @@ export const Admin = () => {
   const pendingWithdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 sm:space-y-6 pb-12 px-1 sm:px-0">
       {/* Top Admin Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-[#0A261A] border border-emerald-500/30 rounded-3xl shadow-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#123A29] border border-amber-400/40 rounded-2xl flex items-center justify-center text-[#F4D06F]">
-            <ShieldCheck className="w-6 h-6" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-5 bg-[#0A261A] border border-emerald-500/30 rounded-2xl sm:rounded-3xl shadow-xl">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#123A29] border border-amber-400/40 rounded-xl sm:rounded-2xl flex items-center justify-center text-[#F4D06F] shrink-0">
+            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white font-mono">FINOVA ADMIN PORTAL</h1>
-              <span className="px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 text-[#F4D06F] rounded-md text-[10px] font-bold">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-bold text-white font-mono truncate">FINOVA ADMIN</h1>
+              <span className="px-1.5 sm:px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 text-[#F4D06F] rounded-md text-[9px] sm:text-[10px] font-bold whitespace-nowrap">
                 SUPER ADMIN
               </span>
             </div>
-            <p className="text-xs text-[#A7B8AE]">Logged in as {user?.email || 'admin@finova.app'}</p>
+            <p className="text-[10px] sm:text-xs text-[#A7B8AE] truncate">{user?.email || 'admin@finova.app'}</p>
           </div>
         </div>
 
@@ -404,150 +431,130 @@ export const Admin = () => {
             setUser({ role: 'user' });
             showToast('Logged out of Admin Portal', 'info');
           }}
-          className="px-4 py-2 bg-[#061F15] hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
+          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#061F15] hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer self-end sm:self-auto"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <span>Exit Admin</span>
         </button>
       </div>
 
       {/* Overview Metrics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-[#0A261A] border border-emerald-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-[#A7B8AE]">Total Users</span>
-            <Users className="w-4 h-4 text-emerald-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="p-3 sm:p-4 bg-[#0A261A] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[10px] sm:text-xs font-semibold text-[#A7B8AE]">Total Users</span>
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold font-mono text-white">
+          <div className="text-lg sm:text-2xl font-bold font-mono text-white">
             {metrics?.totalUsers ?? usersList.length}
           </div>
-          <span className="text-[10px] text-emerald-400 font-medium">
+          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-medium">
             {metrics?.activeUsers ?? usersList.filter(u => u.status === 'active').length} Active
           </span>
         </div>
 
-        <div className="p-4 bg-[#0A261A] border border-emerald-500/20 rounded-2xl relative">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-[#A7B8AE]">Pending Deposits</span>
-            <ArrowDownLeft className="w-4 h-4 text-[#F4D06F]" />
+        <div className="p-3 sm:p-4 bg-[#0A261A] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[10px] sm:text-xs font-semibold text-[#A7B8AE]">Pending Dep.</span>
+            <ArrowDownLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4D06F]" />
           </div>
-          <div className="text-2xl font-bold font-mono text-[#F4D06F]">
+          <div className="text-lg sm:text-2xl font-bold font-mono text-[#F4D06F]">
             {pendingDepositsCount}
           </div>
-          <span className="text-[10px] text-amber-400 font-medium">Action Required</span>
+          <span className="text-[9px] sm:text-[10px] text-amber-400 font-medium">Action Required</span>
         </div>
 
-        <div className="p-4 bg-[#0A261A] border border-emerald-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-[#A7B8AE]">Pending Withdrawals</span>
-            <ArrowUpRight className="w-4 h-4 text-amber-400" />
+        <div className="p-3 sm:p-4 bg-[#0A261A] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[10px] sm:text-xs font-semibold text-[#A7B8AE]">Pending Wdr.</span>
+            <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold font-mono text-amber-400">
+          <div className="text-lg sm:text-2xl font-bold font-mono text-amber-400">
             {pendingWithdrawalsCount}
           </div>
-          <span className="text-[10px] text-amber-400 font-medium">Action Required</span>
+          <span className="text-[9px] sm:text-[10px] text-amber-400 font-medium">Action Required</span>
         </div>
 
-        <div className="p-4 bg-[#0A261A] border border-emerald-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-[#A7B8AE]">Platform Volume</span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+        <div className="p-3 sm:p-4 bg-[#0A261A] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[10px] sm:text-xs font-semibold text-[#A7B8AE]">Volume</span>
+            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
           </div>
-          <div className="text-xl font-bold font-mono text-white">
+          <div className="text-base sm:text-xl font-bold font-mono text-white truncate">
             ₹{(metrics?.totalDeposits || 0).toLocaleString('en-IN')}
           </div>
-          <span className="text-[10px] text-emerald-400 font-medium">Total Verified Deposits</span>
+          <span className="text-[9px] sm:text-[10px] text-emerald-400 font-medium">Total Deposits</span>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-emerald-500/20 pb-3 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setActiveTab('deposits')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'deposits'
-              ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
-              : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
-          }`}
-        >
-          <ArrowDownLeft className="w-4 h-4" />
-          <span>Deposits Approval</span>
-          {pendingDepositsCount > 0 && (
-            <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-mono font-bold rounded-full text-[10px]">
-              {pendingDepositsCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('withdrawals')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'withdrawals'
-              ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
-              : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
-          }`}
-        >
-          <ArrowUpRight className="w-4 h-4" />
-          <span>Withdrawals Approval</span>
-          {pendingWithdrawalsCount > 0 && (
-            <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-mono font-bold rounded-full text-[10px]">
-              {pendingWithdrawalsCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'users'
-              ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
-              : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>User Directory</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'settings'
-              ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
-              : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Platform Settings</span>
-        </button>
+      {/* Navigation Tabs - Scrollable */}
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-emerald-500/20 pb-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+        {[
+          { key: 'deposits', icon: ArrowDownLeft, label: 'Deposits', shortLabel: 'Deposits', badge: pendingDepositsCount },
+          { key: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals', shortLabel: 'Withdraw', badge: pendingWithdrawalsCount },
+          { key: 'users', icon: Users, label: 'Users', shortLabel: 'Users', badge: 0 },
+          { key: 'settings', icon: Settings, label: 'Settings', shortLabel: 'Settings', badge: 0 }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+              activeTab === tab.key
+                ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
+                : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
+            }`}
+          >
+            <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.shortLabel}</span>
+            {tab.badge > 0 && (
+              <span className="px-1.5 sm:px-2 py-0.5 bg-amber-400 text-slate-950 font-mono font-bold rounded-full text-[9px] sm:text-[10px]">
+                {tab.badge}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Tab 1: Deposit Management */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab 1: Deposit Management                         */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === 'deposits' && (
-        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-3xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
-              <ArrowDownLeft className="w-5 h-5 text-[#F4D06F]" />
-              <span>Deposit Requests Management</span>
-            </h2>
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-white font-mono flex items-center gap-2">
+                <ArrowDownLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#F4D06F]" />
+                <span className="hidden sm:inline">Deposit Requests Management</span>
+                <span className="sm:hidden">Deposits</span>
+              </h2>
+              <button
+                onClick={fetchDeposits}
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl sm:hidden"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
 
             {/* Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
               {['ALL', 'VERIFICATION_PENDING', 'PENDING', 'SUCCESS', 'FAILED'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setDepositFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                     depositFilter === st
                       ? 'bg-[#123A29] text-[#F4D06F] border border-amber-400/40'
                       : 'bg-[#061F15] text-[#A7B8AE] hover:text-white'
                   }`}
                 >
-                  {st.replace('_', ' ')}
+                  {st === 'VERIFICATION_PENDING' ? 'V. PENDING' : st.replace('_', ' ')}
                 </button>
               ))}
               <button
                 onClick={fetchDeposits}
-                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl"
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl shrink-0 hidden sm:block"
                 title="Refresh"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -555,8 +562,8 @@ export const Admin = () => {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto rounded-2xl border border-emerald-500/16">
+          {/* Desktop Table (hidden on mobile) */}
+          <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-500/16">
             <table className="w-full text-left text-xs text-[#A7B8AE]">
               <thead className="bg-[#061F15] text-[10px] uppercase font-semibold text-[#F4D06F]">
                 <tr>
@@ -613,17 +620,7 @@ export const Admin = () => {
                         )}
                       </td>
                       <td className="p-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            d.status === 'SUCCESS'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : d.status === 'VERIFICATION_PENDING' || d.status === 'PENDING'
-                              ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}
-                        >
-                          {d.status}
-                        </span>
+                        <StatusBadge status={d.status} type="deposit" />
                       </td>
                       <td className="p-3 text-right">
                         {['PENDING', 'VERIFICATION_PENDING'].includes(d.status) ? (
@@ -655,24 +652,104 @@ export const Admin = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View (visible on mobile, hidden on lg+) */}
+          <div className="lg:hidden space-y-3">
+            {loadingDeposits ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">Loading deposit requests...</div>
+            ) : deposits.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">No deposit requests found.</div>
+            ) : (
+              deposits.map((d) => (
+                <div key={d._id || d.id} className="bg-[#061F15] border border-emerald-500/16 rounded-xl p-3.5 space-y-2.5">
+                  {/* Top Row: User + Amount */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-sm truncate">{d.user?.name || 'Investor'}</div>
+                      <div className="text-[10px] text-[#A7B8AE] truncate">{d.user?.phone || d.user?.email}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono font-bold text-[#F4D06F] text-sm">₹{d.amount?.toLocaleString('en-IN')}</div>
+                      <StatusBadge status={d.status} type="deposit" />
+                    </div>
+                  </div>
+
+                  {/* Ref / UTR */}
+                  <div className="text-[10px] font-mono text-[#A7B8AE] bg-[#0A261A] rounded-lg px-2.5 py-1.5 truncate">
+                    <span className="text-white">{d.paymentReference}</span>
+                    {d.utr && <span className="text-emerald-400 ml-2">UTR: {d.utr}</span>}
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    {d.paymentScreenshot ? (
+                      <button
+                        onClick={() => setPreviewImage(d.paymentScreenshot)}
+                        className="px-2.5 py-1.5 bg-[#123A29] hover:bg-emerald-800/60 border border-emerald-500/40 text-emerald-300 rounded-lg text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileImage className="w-3 h-3 text-[#F4D06F]" />
+                        <span>View Proof</span>
+                      </button>
+                    ) : (
+                      <span className="text-gray-500 text-[10px]">No Screenshot</span>
+                    )}
+
+                    {['PENDING', 'VERIFICATION_PENDING'].includes(d.status) ? (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          disabled={actioningId === (d._id || d.id)}
+                          onClick={() => handleDepositAction(d._id || d.id, 'SUCCESS', d.utr)}
+                          className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          disabled={actioningId === (d._id || d.id)}
+                          onClick={() => handleDepositAction(d._id || d.id, 'FAILED')}
+                          className="px-2 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-500 font-medium">Processed</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
-      {/* Tab 2: Withdrawal Management */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab 2: Withdrawal Management                      */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === 'withdrawals' && (
-        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-3xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
-              <ArrowUpRight className="w-5 h-5 text-amber-400" />
-              <span>Withdrawal Requests Approval</span>
-            </h2>
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-white font-mono flex items-center gap-2">
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                <span className="hidden sm:inline">Withdrawal Requests Approval</span>
+                <span className="sm:hidden">Withdrawals</span>
+              </h2>
+              <button
+                onClick={fetchWithdrawals}
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl sm:hidden"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
               {['ALL', 'pending', 'completed', 'rejected'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setWithdrawalFilter(st)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                     withdrawalFilter === st
                       ? 'bg-[#123A29] text-[#F4D06F] border border-amber-400/40'
                       : 'bg-[#061F15] text-[#A7B8AE] hover:text-white'
@@ -683,14 +760,15 @@ export const Admin = () => {
               ))}
               <button
                 onClick={fetchWithdrawals}
-                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl"
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl shrink-0 hidden sm:block"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-emerald-500/16">
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-500/16">
             <table className="w-full text-left text-xs text-[#A7B8AE]">
               <thead className="bg-[#061F15] text-[10px] uppercase font-semibold text-[#F4D06F]">
                 <tr>
@@ -704,15 +782,11 @@ export const Admin = () => {
               <tbody className="divide-y divide-emerald-500/10">
                 {loadingWithdrawals ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-xs">
-                      Loading withdrawal requests...
-                    </td>
+                    <td colSpan="5" className="p-8 text-center text-xs">Loading withdrawal requests...</td>
                   </tr>
                 ) : withdrawals.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-xs">
-                      No withdrawal requests found.
-                    </td>
+                    <td colSpan="5" className="p-8 text-center text-xs">No withdrawal requests found.</td>
                   </tr>
                 ) : (
                   withdrawals.map((w) => (
@@ -730,17 +804,7 @@ export const Admin = () => {
                         <div className="text-[10px] text-[#A7B8AE]">IFSC: {w.bankAccount?.ifsc || 'HDFC0001'}</div>
                       </td>
                       <td className="p-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            w.status === 'completed'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : w.status === 'pending'
-                              ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}
-                        >
-                          {w.status.toUpperCase()}
-                        </span>
+                        <StatusBadge status={w.status} type="withdrawal" />
                       </td>
                       <td className="p-3 text-right">
                         {w.status === 'pending' ? (
@@ -772,39 +836,106 @@ export const Admin = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {loadingWithdrawals ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">Loading withdrawal requests...</div>
+            ) : withdrawals.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">No withdrawal requests found.</div>
+            ) : (
+              withdrawals.map((w) => (
+                <div key={w._id || w.id} className="bg-[#061F15] border border-emerald-500/16 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-sm truncate">{w.user?.name || 'User'}</div>
+                      <div className="text-[10px] text-[#A7B8AE] truncate">{w.user?.phone || w.user?.email}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-mono font-bold text-amber-400 text-sm">₹{w.amount?.toLocaleString('en-IN')}</div>
+                      <StatusBadge status={w.status} type="withdrawal" />
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] bg-[#0A261A] rounded-lg px-2.5 py-1.5 space-y-0.5">
+                    <div className="text-white font-medium">{w.bankAccount?.bankName || 'Bank'}</div>
+                    <div className="text-emerald-400">A/C: {w.bankAccount?.accountNumberEncrypted ? `****${w.bankAccount.accountNumberLast4 || '4521'}` : 'Verified'}</div>
+                    <div className="text-[#A7B8AE]">IFSC: {w.bankAccount?.ifsc || 'HDFC0001'}</div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    {w.status === 'pending' ? (
+                      <>
+                        <button
+                          disabled={actioningId === (w._id || w.id)}
+                          onClick={() => handleWithdrawalAction(w._id || w.id, 'completed')}
+                          className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          disabled={actioningId === (w._id || w.id)}
+                          onClick={() => handleWithdrawalAction(w._id || w.id, 'rejected')}
+                          className="px-2 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Reject</span>
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-gray-500 font-medium">Completed</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
-      {/* Tab 3: User Management */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab 3: User Management                            */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === 'users' && (
-        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-3xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-400" />
-              <span>User Directory & Status Management</span>
-            </h2>
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-white font-mono flex items-center gap-2">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                <span className="hidden sm:inline">User Directory & Status</span>
+                <span className="sm:hidden">Users</span>
+              </h2>
+              <button
+                onClick={fetchUsers}
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl sm:hidden"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
+            <div className="flex items-center gap-2 w-full">
+              <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#A7B8AE]" />
                 <input
                   type="text"
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   placeholder="Search Name / Email / Phone"
-                  className="w-full pl-9 pr-3 py-1.5 bg-[#061F15] border border-emerald-500/20 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full pl-9 pr-3 py-1.5 sm:py-2 bg-[#061F15] border border-emerald-500/20 rounded-lg sm:rounded-xl text-[11px] sm:text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <button
                 onClick={fetchUsers}
-                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl shrink-0"
+                className="p-1.5 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl shrink-0 hidden sm:block"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-emerald-500/16">
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-500/16">
             <table className="w-full text-left text-xs text-[#A7B8AE]">
               <thead className="bg-[#061F15] text-[10px] uppercase font-semibold text-[#F4D06F]">
                 <tr>
@@ -819,15 +950,11 @@ export const Admin = () => {
               <tbody className="divide-y divide-emerald-500/10">
                 {loadingUsers ? (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-xs">
-                      Loading user directory...
-                    </td>
+                    <td colSpan="6" className="p-8 text-center text-xs">Loading user directory...</td>
                   </tr>
                 ) : usersList.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-xs">
-                      No users found.
-                    </td>
+                    <td colSpan="6" className="p-8 text-center text-xs">No users found.</td>
                   </tr>
                 ) : (
                   usersList.map((u) => (
@@ -844,15 +971,7 @@ export const Admin = () => {
                         ₹{(u.wallet?.totalInvested || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="p-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            u.status === 'active'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          }`}
-                        >
-                          {u.status?.toUpperCase() || 'ACTIVE'}
-                        </span>
+                        <StatusBadge status={u.status || 'active'} type="user" />
                       </td>
                       <td className="p-3 text-right">
                         <button
@@ -873,23 +992,74 @@ export const Admin = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {loadingUsers ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">Loading user directory...</div>
+            ) : usersList.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#A7B8AE]">No users found.</div>
+            ) : (
+              usersList.map((u) => (
+                <div key={u._id || u.id} className="bg-[#061F15] border border-emerald-500/16 rounded-xl p-3.5 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold text-white text-sm truncate">{u.name}</div>
+                      <div className="text-[10px] text-[#A7B8AE] truncate">{u.email}</div>
+                      <div className="text-[10px] text-[#A7B8AE]">{u.phone}</div>
+                    </div>
+                    <StatusBadge status={u.status || 'active'} type="user" />
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[10px] bg-[#0A261A] rounded-lg px-2.5 py-2">
+                    <div>
+                      <span className="text-[#A7B8AE]">Balance: </span>
+                      <span className="font-mono font-bold text-[#F4D06F]">₹{(u.wallet?.availableBalance || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="w-px h-3 bg-emerald-500/20" />
+                    <div>
+                      <span className="text-[#A7B8AE]">Invested: </span>
+                      <span className="font-mono font-bold text-emerald-400">₹{(u.wallet?.totalInvested || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      disabled={actioningId === (u._id || u.id)}
+                      onClick={() => handleUserStatusToggle(u._id || u.id, u.status)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                        u.status === 'active'
+                          ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
+                          : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
+                      }`}
+                    >
+                      {u.status === 'active' ? 'Suspend User' : 'Activate User'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
-      {/* Tab 4: Platform Settings */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab 4: Platform Settings                          */}
+      {/* ═══════════════════════════════════════════════════ */}
       {activeTab === 'settings' && (
-        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-3xl p-5 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
-              <Settings className="w-5 h-5 text-[#F4D06F]" />
-              <span>Payment & QR Settings</span>
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 space-y-4 sm:space-y-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm sm:text-base font-bold text-white font-mono flex items-center gap-2">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-[#F4D06F]" />
+              <span className="hidden sm:inline">Payment & QR Settings</span>
+              <span className="sm:hidden">Settings</span>
             </h2>
             <button
               onClick={fetchSettings}
-              className="p-2 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl border border-emerald-500/20 transition-all"
+              className="p-1.5 sm:p-2 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-lg sm:rounded-xl border border-emerald-500/20 transition-all"
               title="Refresh Settings"
             >
-              <RefreshCw className={`w-4 h-4 ${loadingSettings ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loadingSettings ? 'animate-spin' : ''}`} />
             </button>
           </div>
 
@@ -898,30 +1068,30 @@ export const Admin = () => {
               <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               {/* UPI ID Setting */}
-              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+              <div className="p-3.5 sm:p-5 bg-[#061F15] border border-emerald-500/16 rounded-xl sm:rounded-2xl space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
-                    <span className="text-[#F4D06F] text-sm font-bold">₹</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#123A29] border border-amber-400/30 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                    <span className="text-[#F4D06F] text-xs sm:text-sm font-bold">₹</span>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">UPI ID</h3>
-                    <p className="text-[10px] text-[#A7B8AE]">The UPI address shown to users during deposit. Changes take effect immediately for new deposits.</p>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white">UPI ID</h3>
+                    <p className="text-[9px] sm:text-[10px] text-[#A7B8AE] leading-snug">UPI address shown to users during deposit</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
                     value={settingsEditing.upiId}
                     onChange={(e) => setSettingsEditing(prev => ({ ...prev, upiId: e.target.value }))}
                     placeholder="yourname@upi"
-                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                   <button
                     onClick={() => handleSaveSetting('upiId')}
                     disabled={savingSettingKey === 'upiId' || settingsEditing.upiId === settingsData.upiId}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                    className="px-4 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
                   >
                     {savingSettingKey === 'upiId' ? (
                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -934,36 +1104,36 @@ export const Admin = () => {
                   </button>
                 </div>
                 {settingsData.upiId && (
-                  <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                  <div className="text-[9px] sm:text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>Current: {settingsData.upiId}</span>
+                    <span className="truncate">Current: {settingsData.upiId}</span>
                   </div>
                 )}
               </div>
 
               {/* Merchant Name Setting */}
-              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+              <div className="p-3.5 sm:p-5 bg-[#061F15] border border-emerald-500/16 rounded-xl sm:rounded-2xl space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-[#F4D06F]" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#123A29] border border-amber-400/30 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4D06F]" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Merchant Name</h3>
-                    <p className="text-[10px] text-[#A7B8AE]">The merchant/business name embedded in the UPI payment QR code.</p>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white">Merchant Name</h3>
+                    <p className="text-[9px] sm:text-[10px] text-[#A7B8AE] leading-snug">Business name in UPI payment QR code</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
                     value={settingsEditing.merchantName}
                     onChange={(e) => setSettingsEditing(prev => ({ ...prev, merchantName: e.target.value }))}
                     placeholder="FINOVA"
-                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                   <button
                     onClick={() => handleSaveSetting('merchantName')}
                     disabled={savingSettingKey === 'merchantName' || settingsEditing.merchantName === settingsData.merchantName}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                    className="px-4 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
                   >
                     {savingSettingKey === 'merchantName' ? (
                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -976,36 +1146,36 @@ export const Admin = () => {
                   </button>
                 </div>
                 {settingsData.merchantName && (
-                  <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                  <div className="text-[9px] sm:text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    <span>Current: {settingsData.merchantName}</span>
+                    <span className="truncate">Current: {settingsData.merchantName}</span>
                   </div>
                 )}
               </div>
 
               {/* Custom QR Code URL Setting */}
-              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+              <div className="p-3.5 sm:p-5 bg-[#061F15] border border-emerald-500/16 rounded-xl sm:rounded-2xl space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
-                    <FileImage className="w-4 h-4 text-[#F4D06F]" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#123A29] border border-amber-400/30 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                    <FileImage className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4D06F]" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Custom QR Code Image URL</h3>
-                    <p className="text-[10px] text-[#A7B8AE]">Optional: Provide a URL to a custom QR code image. If set, this overrides auto-generated QR.</p>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-bold text-white">Custom QR Code URL</h3>
+                    <p className="text-[9px] sm:text-[10px] text-[#A7B8AE] leading-snug">Optional: Custom QR image overrides auto-generated QR</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
                     value={settingsEditing.qrCodeUrl}
                     onChange={(e) => setSettingsEditing(prev => ({ ...prev, qrCodeUrl: e.target.value }))}
-                    placeholder="https://example.com/your-qr-code.png"
-                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="https://example.com/your-qr.png"
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-lg sm:rounded-xl text-xs sm:text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                   <button
                     onClick={() => handleSaveSetting('qrCodeUrl')}
                     disabled={savingSettingKey === 'qrCodeUrl' || settingsEditing.qrCodeUrl === (settingsData.qrCodeUrl || '')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                    className="px-4 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-lg sm:rounded-xl text-[11px] sm:text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
                   >
                     {savingSettingKey === 'qrCodeUrl' ? (
                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -1019,16 +1189,16 @@ export const Admin = () => {
                 </div>
                 {settingsData.qrCodeUrl && (
                   <div className="space-y-2">
-                    <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    <div className="text-[9px] sm:text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      <span>Current: {settingsData.qrCodeUrl}</span>
+                      <span className="truncate">Current: {settingsData.qrCodeUrl}</span>
                     </div>
-                    <div className="mt-2 p-3 bg-[#0A261A] rounded-xl border border-emerald-500/20 inline-block">
-                      <p className="text-[10px] text-[#A7B8AE] mb-2">Preview:</p>
+                    <div className="mt-2 p-2.5 sm:p-3 bg-[#0A261A] rounded-lg sm:rounded-xl border border-emerald-500/20 inline-block">
+                      <p className="text-[9px] sm:text-[10px] text-[#A7B8AE] mb-2">Preview:</p>
                       <img
                         src={settingsData.qrCodeUrl}
                         alt="Custom QR Preview"
-                        className="w-32 h-32 object-contain rounded-lg border border-emerald-500/30"
+                        className="w-24 h-24 sm:w-32 sm:h-32 object-contain rounded-lg border border-emerald-500/30"
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     </div>
@@ -1037,14 +1207,14 @@ export const Admin = () => {
               </div>
 
               {/* Info Box */}
-              <div className="p-4 bg-amber-400/5 border border-amber-400/20 rounded-2xl">
+              <div className="p-3 sm:p-4 bg-amber-400/5 border border-amber-400/20 rounded-xl sm:rounded-2xl">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-[#F4D06F] shrink-0 mt-0.5" />
-                  <div className="text-[11px] text-[#A7B8AE] space-y-1">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F4D06F] shrink-0 mt-0.5" />
+                  <div className="text-[10px] sm:text-[11px] text-[#A7B8AE] space-y-1">
                     <p className="font-semibold text-[#F4D06F]">How Settings Work</p>
-                    <p>• <strong>UPI ID</strong> — This is the UPI address where users will send deposit payments. All new deposits will immediately use the updated value.</p>
-                    <p>• <strong>Merchant Name</strong> — Appears in the UPI payment request shown to users in their UPI app.</p>
-                    <p>• <strong>Custom QR Code URL</strong> — If provided, the custom QR image will be displayed to users instead of the auto-generated QR code.</p>
+                    <p>• <strong>UPI ID</strong> — UPI address for deposit payments. New deposits use updated value immediately.</p>
+                    <p>• <strong>Merchant Name</strong> — Appears in UPI payment request in user's app.</p>
+                    <p>• <strong>Custom QR Code URL</strong> — Overrides auto-generated QR with custom image.</p>
                   </div>
                 </div>
               </div>
@@ -1055,11 +1225,11 @@ export const Admin = () => {
 
       {/* Proof Screenshot Image Modal Preview */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#0A261A] border border-emerald-500/40 rounded-3xl p-4 max-w-lg w-full max-h-[85vh] flex flex-col items-center shadow-2xl">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="relative bg-[#0A261A] border border-emerald-500/40 rounded-2xl sm:rounded-3xl p-3 sm:p-4 max-w-lg w-full max-h-[85vh] flex flex-col items-center shadow-2xl">
             <div className="w-full flex items-center justify-between mb-3 border-b border-emerald-500/20 pb-2">
-              <span className="text-xs font-mono font-bold text-[#F4D06F] flex items-center gap-1.5">
-                <FileImage className="w-4 h-4" /> Payment Proof Screenshot
+              <span className="text-[11px] sm:text-xs font-mono font-bold text-[#F4D06F] flex items-center gap-1.5">
+                <FileImage className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Payment Proof
               </span>
               <button
                 onClick={() => setPreviewImage(null)}
@@ -1068,17 +1238,17 @@ export const Admin = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="w-full flex-1 overflow-auto flex items-center justify-center p-2">
+            <div className="w-full flex-1 overflow-auto flex items-center justify-center p-1 sm:p-2">
               <img
                 src={previewImage}
                 alt="Payment Proof Full Preview"
-                className="max-w-full max-h-[60vh] object-contain rounded-xl border border-emerald-500/30"
+                className="max-w-full max-h-[55vh] sm:max-h-[60vh] object-contain rounded-lg sm:rounded-xl border border-emerald-500/30"
               />
             </div>
-            <div className="w-full pt-3 flex justify-end">
+            <div className="w-full pt-2 sm:pt-3 flex justify-end">
               <button
                 onClick={() => setPreviewImage(null)}
-                className="px-4 py-2 bg-[#123A29] text-[#F4D06F] rounded-xl text-xs font-bold"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#123A29] text-[#F4D06F] rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold cursor-pointer"
               >
                 Close Preview
               </button>
