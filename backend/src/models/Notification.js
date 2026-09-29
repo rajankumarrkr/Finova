@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['dollar', 'users', 'trending', 'arrow-down', 'check'],
+      enum: ['dollar', 'users', 'trending', 'arrow-down', 'check', 'deposit', 'withdrawal'],
       default: 'dollar'
     },
     category: {

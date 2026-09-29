@@ -35,6 +35,16 @@ export const updateWithdrawalStatus = async (id, status, adminNote = '') => {
   return response.data;
 };
 
+export const getSettings = async () => {
+  const response = await api.get('/admin/settings');
+  return response.data;
+};
+
+export const updateSetting = async (key, value) => {
+  const response = await api.put('/admin/settings', { key, value });
+  return response.data;
+};
+
 export const adminService = {
   getDashboard,
   getUsers,
@@ -42,7 +52,9 @@ export const adminService = {
   getDeposits,
   updateDepositStatus,
   getWithdrawals,
-  updateWithdrawalStatus
+  updateWithdrawalStatus,
+  getSettings,
+  updateSetting
 };
 
 export default adminService;

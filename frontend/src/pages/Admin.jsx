@@ -22,7 +22,8 @@ import {
   XCircle,
   FileImage,
   RefreshCw,
-  Lock
+  Lock,
+  Settings
 } from 'lucide-react';
 
 export const Admin = () => {
@@ -58,6 +59,12 @@ export const Admin = () => {
 
   // Screenshot Preview Modal State
   const [previewImage, setPreviewImage] = useState(null);
+
+  // Settings State
+  const [settingsData, setSettingsData] = useState({ upiId: '', merchantName: '', qrCodeUrl: '' });
+  const [settingsEditing, setSettingsEditing] = useState({ upiId: '', merchantName: '', qrCodeUrl: '' });
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettingKey, setSavingSettingKey] = useState(null);
 
   // Action Loading ID
   const [actioningId, setActioningId] = useState(null);
@@ -169,6 +176,49 @@ export const Admin = () => {
     }
   }, [isAdmin, userSearch, userFilter]);
 
+  // Fetch Settings
+  const fetchSettings = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingSettings(true);
+    try {
+      const res = await adminService.getSettings();
+      if (res?.success) {
+        const data = res.data || {};
+        setSettingsData(data);
+        setSettingsEditing({
+          upiId: data.upiId || '',
+          merchantName: data.merchantName || '',
+          qrCodeUrl: data.qrCodeUrl || ''
+        });
+      }
+    } catch (e) {
+      console.error('Error fetching settings:', e);
+    } finally {
+      setLoadingSettings(false);
+    }
+  }, [isAdmin]);
+
+  // Save a single setting
+  const handleSaveSetting = async (key) => {
+    const value = settingsEditing[key];
+    if (!value || !value.trim()) {
+      showToast('Value cannot be empty', 'error');
+      return;
+    }
+    setSavingSettingKey(key);
+    try {
+      const res = await adminService.updateSetting(key, value.trim());
+      if (res?.success) {
+        showToast(`${key === 'upiId' ? 'UPI ID' : key === 'merchantName' ? 'Merchant Name' : 'QR Code URL'} updated successfully!`, 'success');
+        fetchSettings();
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, `Failed to update ${key}`), 'error');
+    } finally {
+      setSavingSettingKey(null);
+    }
+  };
+
   // Initial Load on Admin tab switch
   useEffect(() => {
     if (isAdmin) {
@@ -176,8 +226,9 @@ export const Admin = () => {
       fetchDeposits();
       fetchWithdrawals();
       fetchUsers();
+      fetchSettings();
     }
-  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers]);
+  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers, fetchSettings]);
 
   // Approve / Reject Deposit
   const handleDepositAction = async (id, status, utr) => {
@@ -455,6 +506,18 @@ export const Admin = () => {
         >
           <Users className="w-4 h-4" />
           <span>User Directory</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'settings'
+              ? 'bg-[#123A29] text-[#F4D06F] border border-[#F4D06F]/50 shadow-md'
+              : 'bg-[#0A261A] text-[#A7B8AE] border border-emerald-500/16 hover:text-white'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Platform Settings</span>
         </button>
       </div>
 
@@ -810,6 +873,183 @@ export const Admin = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Tab 4: Platform Settings */}
+      {activeTab === 'settings' && (
+        <div className="bg-[#0A261A] border border-emerald-500/20 rounded-3xl p-5 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
+              <Settings className="w-5 h-5 text-[#F4D06F]" />
+              <span>Payment & QR Settings</span>
+            </h2>
+            <button
+              onClick={fetchSettings}
+              className="p-2 bg-[#061F15] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl border border-emerald-500/20 transition-all"
+              title="Refresh Settings"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingSettings ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
+          {loadingSettings ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {/* UPI ID Setting */}
+              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
+                    <span className="text-[#F4D06F] text-sm font-bold">₹</span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">UPI ID</h3>
+                    <p className="text-[10px] text-[#A7B8AE]">The UPI address shown to users during deposit. Changes take effect immediately for new deposits.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={settingsEditing.upiId}
+                    onChange={(e) => setSettingsEditing(prev => ({ ...prev, upiId: e.target.value }))}
+                    placeholder="yourname@upi"
+                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                  <button
+                    onClick={() => handleSaveSetting('upiId')}
+                    disabled={savingSettingKey === 'upiId' || settingsEditing.upiId === settingsData.upiId}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                  >
+                    {savingSettingKey === 'upiId' ? (
+                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {settingsData.upiId && (
+                  <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Current: {settingsData.upiId}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Merchant Name Setting */}
+              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-[#F4D06F]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Merchant Name</h3>
+                    <p className="text-[10px] text-[#A7B8AE]">The merchant/business name embedded in the UPI payment QR code.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={settingsEditing.merchantName}
+                    onChange={(e) => setSettingsEditing(prev => ({ ...prev, merchantName: e.target.value }))}
+                    placeholder="FINOVA"
+                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                  <button
+                    onClick={() => handleSaveSetting('merchantName')}
+                    disabled={savingSettingKey === 'merchantName' || settingsEditing.merchantName === settingsData.merchantName}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                  >
+                    {savingSettingKey === 'merchantName' ? (
+                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {settingsData.merchantName && (
+                  <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Current: {settingsData.merchantName}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom QR Code URL Setting */}
+              <div className="p-5 bg-[#061F15] border border-emerald-500/16 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 bg-[#123A29] border border-amber-400/30 rounded-xl flex items-center justify-center">
+                    <FileImage className="w-4 h-4 text-[#F4D06F]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Custom QR Code Image URL</h3>
+                    <p className="text-[10px] text-[#A7B8AE]">Optional: Provide a URL to a custom QR code image. If set, this overrides auto-generated QR.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={settingsEditing.qrCodeUrl}
+                    onChange={(e) => setSettingsEditing(prev => ({ ...prev, qrCodeUrl: e.target.value }))}
+                    placeholder="https://example.com/your-qr-code.png"
+                    className="flex-1 px-4 py-2.5 bg-[#0A261A] border border-emerald-500/20 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                  <button
+                    onClick={() => handleSaveSetting('qrCodeUrl')}
+                    disabled={savingSettingKey === 'qrCodeUrl' || settingsEditing.qrCodeUrl === (settingsData.qrCodeUrl || '')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-900/30"
+                  >
+                    {savingSettingKey === 'qrCodeUrl' ? (
+                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {settingsData.qrCodeUrl && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Current: {settingsData.qrCodeUrl}</span>
+                    </div>
+                    <div className="mt-2 p-3 bg-[#0A261A] rounded-xl border border-emerald-500/20 inline-block">
+                      <p className="text-[10px] text-[#A7B8AE] mb-2">Preview:</p>
+                      <img
+                        src={settingsData.qrCodeUrl}
+                        alt="Custom QR Preview"
+                        className="w-32 h-32 object-contain rounded-lg border border-emerald-500/30"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Info Box */}
+              <div className="p-4 bg-amber-400/5 border border-amber-400/20 rounded-2xl">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-[#F4D06F] shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-[#A7B8AE] space-y-1">
+                    <p className="font-semibold text-[#F4D06F]">How Settings Work</p>
+                    <p>• <strong>UPI ID</strong> — This is the UPI address where users will send deposit payments. All new deposits will immediately use the updated value.</p>
+                    <p>• <strong>Merchant Name</strong> — Appears in the UPI payment request shown to users in their UPI app.</p>
+                    <p>• <strong>Custom QR Code URL</strong> — If provided, the custom QR image will be displayed to users instead of the auto-generated QR code.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

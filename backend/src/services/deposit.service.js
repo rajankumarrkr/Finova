@@ -2,11 +2,25 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import mongoose from 'mongoose';
 import { Deposit } from '../models/Deposit.js';
+import { Setting } from '../models/Setting.js';
 import { Notification } from '../models/Notification.js';
 import { WalletService } from './wallet.service.js';
 import { env } from '../config/env.js';
 
 export class DepositService {
+  /**
+   * Helper to fetch a setting from the DB, with env fallback.
+   */
+  static async _getSetting(key, envFallback) {
+    try {
+      const setting = await Setting.findOne({ key }).lean();
+      if (setting && setting.value) return setting.value;
+    } catch (e) {
+      console.warn(`Failed to read setting "${key}" from DB, using env fallback.`);
+    }
+    return envFallback;
+  }
+
   /**
    * Create a new deposit order with dynamic UPI URI and QR Code.
    */
@@ -56,9 +70,9 @@ export class DepositService {
     const randomBytes = crypto.randomBytes(4).toString('hex').toUpperCase();
     const paymentReference = `FINOVA-DEP-${Date.now().toString(36).toUpperCase()}${randomBytes}`;
 
-    // 3. Backend-configured UPI ID & Merchant Name
-    const upiId = env.FINOVA_UPI_ID || 'finova@upi';
-    const merchantName = env.FINOVA_MERCHANT_NAME || 'FINOVA';
+    // 3. Fetch UPI ID & Merchant Name from DB Settings, fall back to env
+    const upiId = await this._getSetting('upiId', env.FINOVA_UPI_ID || 'finova@upi');
+    const merchantName = await this._getSetting('merchantName', env.FINOVA_MERCHANT_NAME || 'FINOVA');
 
     // 4. Construct Dynamic UPI URI
     // upi://pay?pa=RECEIVING_UPI_ID&pn=MERCHANT_NAME&am=EXACT_AMOUNT&cu=INR&tr=PAYMENT_REFERENCE

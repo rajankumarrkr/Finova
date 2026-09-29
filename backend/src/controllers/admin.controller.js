@@ -6,6 +6,7 @@ import { Deposit } from '../models/Deposit.js';
 import { Transaction } from '../models/Transaction.js';
 import { Earning } from '../models/Earning.js';
 import { AuditLog } from '../models/AuditLog.js';
+import { Setting } from '../models/Setting.js';
 import { WithdrawalService } from '../services/withdrawal.service.js';
 import { DepositService } from '../services/deposit.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
@@ -247,6 +248,59 @@ export const updateDepositStatus = async (req, res, next) => {
     }
 
     return ApiResponse.error(res, 'Invalid deposit status action', 'BAD_REQUEST', 400);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Settings Management ────────────────────────────────────────────────────
+
+export const getSettings = async (req, res, next) => {
+  try {
+    const keys = ['upiId', 'merchantName', 'qrCodeUrl'];
+    const settings = await Setting.find({ key: { $in: keys } }).lean();
+
+    const result = {};
+    for (const s of settings) {
+      result[s.key] = s.value;
+    }
+
+    return ApiResponse.success(res, 'Platform settings retrieved', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSettings = async (req, res, next) => {
+  try {
+    const { key, value } = req.body;
+
+    const allowedKeys = ['upiId', 'merchantName', 'qrCodeUrl'];
+    if (!key || !allowedKeys.includes(key)) {
+      return ApiResponse.error(res, `Invalid setting key. Allowed: ${allowedKeys.join(', ')}`, 'BAD_REQUEST', 400);
+    }
+
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return ApiResponse.error(res, 'Setting value cannot be empty', 'BAD_REQUEST', 400);
+    }
+
+    const setting = await Setting.findOneAndUpdate(
+      { key },
+      { $set: { key, value: String(value).trim() } },
+      { upsert: true, new: true }
+    );
+
+    await AuditLog.create({
+      actor: req.user._id,
+      action: 'ADMIN_UPDATE_SETTING',
+      entity: 'Setting',
+      entityId: setting._id.toString(),
+      metadata: { key, value: String(value).trim() },
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+
+    return ApiResponse.success(res, `Setting "${key}" updated successfully`, setting);
   } catch (error) {
     next(error);
   }

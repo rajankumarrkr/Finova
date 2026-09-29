@@ -8,7 +8,9 @@ import {
   getWithdrawals,
   updateWithdrawalStatus,
   getDeposits,
-  updateDepositStatus
+  updateDepositStatus,
+  getSettings,
+  updateSettings
 } from '../controllers/admin.controller.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/admin.js';
@@ -29,5 +31,8 @@ router.patch('/deposits/:id/status', updateDepositStatus);
 
 router.get('/withdrawals', getWithdrawals);
 router.patch('/withdrawals/:id/status', updateWithdrawalStatus);
+
+router.get('/settings', getSettings);
+router.put('/settings', updateSettings);
 
 export default router;
