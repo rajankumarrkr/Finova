@@ -1,6 +1,6 @@
-import crypto from 'crypto';
 import { BankAccount } from '../models/BankAccount.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { encrypt } from '../utils/encryption.js';
 
 export const getBankAccounts = async (req, res, next) => {
   try {
@@ -31,9 +31,7 @@ export const addBankAccount = async (req, res, next) => {
       return ApiResponse.error(res, 'Enter a valid account number (min 9 digits)', 'INVALID_ACCOUNT_NUMBER', 400);
     }
 
-    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from('finova_secret_key_32bytes_sec!!'), Buffer.alloc(16, 0));
-    let encrypted = cipher.update(accountNumber, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+    const encrypted = encrypt(accountNumber);
 
     const last4 = accountNumber.slice(-4);
     const existingCount = await BankAccount.countDocuments({ user: req.user._id });

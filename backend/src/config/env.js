@@ -21,6 +21,8 @@ export const env = {
   PAYMENT_KEY_SECRET: process.env.PAYMENT_KEY_SECRET || 'rzp_test_mocksecret67890',
   PAYMENT_WEBHOOK_SECRET: process.env.PAYMENT_WEBHOOK_SECRET || 'whsec_finova_webhook_secret_key_123',
   
+  BANK_ENCRYPTION_KEY: process.env.BANK_ENCRYPTION_KEY || '0a856fdabc1f5827005117f73131eeb16578a3f7831bf748c40f0ff6cf69e7fe',
+
   COOKIE_SECURE: process.env.COOKIE_SECURE === 'true',
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@finova.app'
 };

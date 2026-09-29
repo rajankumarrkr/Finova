@@ -2,9 +2,13 @@ import app from './app.js';
 import { env } from './config/env.js';
 import { connectDB, closeDB } from './config/db.js';
 import { initDailyEarningsCron } from './jobs/dailyEarnings.job.js';
+import { validateEncryptionKey } from './utils/encryption.js';
 
 const startServer = async () => {
   try {
+    // 0. Validate Security Configuration
+    validateEncryptionKey();
+
     // 1. Connect MongoDB
     await connectDB();
 
