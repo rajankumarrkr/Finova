@@ -3,6 +3,7 @@ import { Investment } from '../models/Investment.js';
 import { Transaction } from '../models/Transaction.js';
 import { Earning } from '../models/Earning.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { CloudinaryService } from '../services/cloudinary.service.js';
 
 export const getDashboard = async (req, res, next) => {
   try {
@@ -92,7 +93,94 @@ export const updateProfile = async (req, res, next) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        avatar: user.avatar
+        avatar: user.avatar?.url || user.avatar
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return ApiResponse.error(res, 'No image file uploaded', 'FILE_REQUIRED', 400);
+    }
+
+    const userId = req.user._id.toString();
+    const oldPublicId = req.user.avatar?.publicId;
+
+    // 1. Upload new image buffer to Cloudinary
+    let uploadResult;
+    try {
+      uploadResult = await CloudinaryService.uploadAvatar(userId, req.file.buffer, req);
+    } catch (uploadError) {
+      console.error('[Cloudinary Upload Error]:', uploadError.message);
+      return ApiResponse.error(
+        res,
+        'Failed to upload image to Cloudinary: ' + (uploadError.message || 'Unknown error'),
+        'CLOUDINARY_UPLOAD_FAILED',
+        500
+      );
+    }
+
+    // 2. Persist metadata in MongoDB User model
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return ApiResponse.error(res, 'User not found', 'USER_NOT_FOUND', 404);
+    }
+
+    user.avatar = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id
+    };
+    await user.save();
+
+    // 3. Delete old Cloudinary asset only AFTER new upload and DB save succeed
+    if (oldPublicId && oldPublicId !== uploadResult.public_id) {
+      CloudinaryService.deleteAsset(oldPublicId).catch((err) => {
+        console.warn('[Cloudinary Warning]: Deleting previous avatar asset failed:', err.message);
+      });
+    }
+
+    // 4. Return standard API response format
+    return ApiResponse.success(res, 'Profile image updated successfully', {
+      avatar: {
+        url: user.avatar.url,
+        publicId: user.avatar.publicId
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteAvatar = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return ApiResponse.error(res, 'User not found', 'USER_NOT_FOUND', 404);
+    }
+
+    const currentPublicId = user.avatar?.publicId;
+
+    // 1. If user has a stored Cloudinary asset, delete it safely
+    if (currentPublicId) {
+      await CloudinaryService.deleteAsset(currentPublicId);
+    }
+
+    // 2. Reset avatar in User model to default placeholder
+    const defaultAvatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
+    user.avatar = {
+      url: defaultAvatarUrl,
+      publicId: null
+    };
+    await user.save();
+
+    return ApiResponse.success(res, 'Profile image removed successfully', {
+      avatar: {
+        url: defaultAvatarUrl,
+        publicId: null
       }
     });
   } catch (error) {

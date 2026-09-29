@@ -29,8 +29,14 @@ const userSchema = new mongoose.Schema(
       select: false
     },
     avatar: {
-      type: String,
-      default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'
+      url: {
+        type: String,
+        default: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'
+      },
+      publicId: {
+        type: String,
+        default: null
+      }
     },
     referralCode: {
       type: String,

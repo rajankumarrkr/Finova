@@ -3,11 +3,13 @@ import { env } from './config/env.js';
 import { connectDB, closeDB } from './config/db.js';
 import { initDailyEarningsCron } from './jobs/dailyEarnings.job.js';
 import { validateEncryptionKey } from './utils/encryption.js';
+import { validateCloudinaryConfig } from './config/cloudinary.js';
 
 const startServer = async () => {
   try {
-    // 0. Validate Security Configuration
+    // 0. Validate Security & Cloudinary Configuration
     validateEncryptionKey();
+    validateCloudinaryConfig();
 
     // 1. Connect MongoDB
     await connectDB();

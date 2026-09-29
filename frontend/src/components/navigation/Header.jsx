@@ -103,7 +103,7 @@ export const Header = () => {
             className="flex items-center gap-2.5 p-1 md:p-1.5 rounded-2xl bg-[#031C12] border border-emerald-500/16 hover:border-amber-400/40 transition-all focus:outline-none"
           >
             <img
-              src={user.avatar}
+              src={typeof user.avatar === 'object' ? user.avatar?.url : (user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80')}
               alt={user.name}
               className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover ring-2 ring-gradient-to-r ring-[#10B981] p-0.5"
             />

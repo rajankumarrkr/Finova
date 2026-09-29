@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import mongoose from 'mongoose';
+import path from 'path';
 
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -63,6 +64,9 @@ app.use(cookieParser());
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(requestId);
 
+// Static uploads serving (local development fallback)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Root Endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -103,6 +107,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/dashboard', userRoutes); // Dashboard metrics & performance endpoints
 app.use('/api/plans', planRoutes);
 app.use('/api/investments', investmentRoutes);

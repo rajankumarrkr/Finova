@@ -9,6 +9,7 @@ import * as transactionService from './transactionService';
 import * as withdrawalService from './withdrawalService';
 import * as bankService from './bankService';
 import * as notificationService from './notificationService';
+import * as userService from './userService';
 
 export const apiService = {
   // Auth
@@ -17,6 +18,11 @@ export const apiService = {
   logout: authService.logout,
   refresh: authService.refresh,
   getMe: authService.getMe,
+
+  // User & Avatar
+  uploadAvatar: userService.uploadAvatar,
+  deleteAvatar: userService.deleteAvatar,
+  updateProfile: userService.updateProfile,
 
   // Dashboard
   getDashboard: dashboardService.getDashboard,
