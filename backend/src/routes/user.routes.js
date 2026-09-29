@@ -6,7 +6,9 @@ const router = express.Router();
 
 router.use(protect);
 
+router.get('/', getDashboard);
 router.get('/dashboard', getDashboard);
+router.get('/performance', getPerformance);
 router.get('/dashboard/performance', getPerformance);
 router.patch('/profile', updateProfile);
 
