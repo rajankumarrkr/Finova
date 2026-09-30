@@ -3,6 +3,7 @@ import { BankAccount } from '../models/BankAccount.js';
 import { WalletService } from './wallet.service.js';
 import { generateTransactionId } from '../utils/transactionId.js';
 import { Transaction } from '../models/Transaction.js';
+import { decrypt } from '../utils/encryption.js';
 
 export class WithdrawalService {
   static async requestWithdrawal(userId, amount, bankAccountId) {
@@ -13,6 +14,16 @@ export class WithdrawalService {
     const bankAccount = await BankAccount.findOne({ _id: bankAccountId, user: userId });
     if (!bankAccount) {
       throw { statusCode: 404, message: 'Verified bank account not found', code: 'BANK_NOT_FOUND' };
+    }
+
+    // Decrypt full account number for persistent withdrawal record
+    let fullAccountNumber = bankAccount.accountNumber;
+    if (!fullAccountNumber && bankAccount.accountNumberEncrypted) {
+      try {
+        fullAccountNumber = decrypt(bankAccount.accountNumberEncrypted);
+      } catch (e) {
+        fullAccountNumber = bankAccount.accountNumberLast4;
+      }
     }
 
     // Place hold on wallet available balance
@@ -34,6 +45,12 @@ export class WithdrawalService {
       user: userId,
       amount,
       bankAccount: bankAccountId,
+      bankDetails: {
+        accountHolderName: bankAccount.accountHolderName,
+        bankName: bankAccount.bankName,
+        accountNumber: fullAccountNumber || bankAccount.accountNumberLast4,
+        ifsc: bankAccount.ifsc
+      },
       status: 'pending',
       transaction: transaction._id
     });

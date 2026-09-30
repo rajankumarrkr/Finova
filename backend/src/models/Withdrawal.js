@@ -18,6 +18,12 @@ const withdrawalSchema = new mongoose.Schema(
       ref: 'BankAccount',
       required: true
     },
+    bankDetails: {
+      accountHolderName: { type: String, trim: true },
+      bankName: { type: String, trim: true },
+      accountNumber: { type: String, trim: true },
+      ifsc: { type: String, trim: true }
+    },
     status: {
       type: String,
       enum: ['pending', 'approved', 'processing', 'completed', 'rejected', 'cancelled'],

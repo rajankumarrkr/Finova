@@ -28,7 +28,9 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Sparkles
+  Sparkles,
+  Building2,
+  Copy
 } from 'lucide-react';
 import { getMediaUrl, handleImageError } from '../utils/media';
 
@@ -995,9 +997,53 @@ export const Admin = () => {
                         ₹{w.amount?.toLocaleString('en-IN')}
                       </td>
                       <td className="p-3">
-                        <div className="text-white font-medium">{w.bankAccount?.bankName || 'Bank'}</div>
-                        <div className="text-[10px] text-emerald-400">A/C: {w.bankAccount?.accountNumberEncrypted ? `****${w.bankAccount.accountNumberLast4 || '4521'}` : 'Verified'}</div>
-                        <div className="text-[10px] text-[#A7B8AE]">IFSC: {w.bankAccount?.ifsc || 'HDFC0001'}</div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+                            <Building2 className="w-3.5 h-3.5 text-[#F4D06F] shrink-0" />
+                            <span>{w.bankAccount?.bankName || w.bankDetails?.bankName || 'Bank'}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 select-all">
+                              A/C: {w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || (w.bankAccount?.accountNumberLast4 ? `****${w.bankAccount.accountNumberLast4}` : 'N/A')}
+                            </span>
+                            {(w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || w.bankAccount?.accountNumberLast4) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const acc = w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || w.bankAccount?.accountNumberLast4;
+                                  navigator.clipboard.writeText(acc);
+                                  showToast('Account number copied!', 'success');
+                                }}
+                                className="p-1 rounded hover:bg-emerald-500/20 text-[#71857A] hover:text-white transition-colors cursor-pointer"
+                                title="Copy Account Number"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <span className="font-mono text-[#F4D06F] font-semibold select-all">
+                              IFSC: {w.bankAccount?.ifsc || w.bankDetails?.ifsc || 'N/A'}
+                            </span>
+                            {(w.bankAccount?.ifsc || w.bankDetails?.ifsc) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ifsc = w.bankAccount?.ifsc || w.bankDetails?.ifsc;
+                                  navigator.clipboard.writeText(ifsc);
+                                  showToast('IFSC copied!', 'success');
+                                }}
+                                className="p-1 rounded hover:bg-amber-400/20 text-[#71857A] hover:text-white transition-colors cursor-pointer"
+                                title="Copy IFSC"
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-[#A7B8AE]">
+                            Holder: <span className="text-slate-200 font-medium">{w.bankAccount?.accountHolderName || w.bankDetails?.accountHolderName || w.user?.name}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="p-3">
                         <StatusBadge status={w.status} type="withdrawal" />
@@ -1053,10 +1099,54 @@ export const Admin = () => {
                     </div>
                   </div>
 
-                  <div className="text-[10px] bg-[#0A261A] rounded-lg px-2.5 py-1.5 space-y-0.5">
-                    <div className="text-white font-medium">{w.bankAccount?.bankName || 'Bank'}</div>
-                    <div className="text-emerald-400">A/C: {w.bankAccount?.accountNumberEncrypted ? `****${w.bankAccount.accountNumberLast4 || '4521'}` : 'Verified'}</div>
-                    <div className="text-[#A7B8AE]">IFSC: {w.bankAccount?.ifsc || 'HDFC0001'}</div>
+                  <div className="text-xs bg-[#0A261A] rounded-xl p-2.5 space-y-1.5 border border-emerald-500/16">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+                        <Building2 className="w-3.5 h-3.5 text-[#F4D06F] shrink-0" />
+                        <span>{w.bankAccount?.bankName || w.bankDetails?.bankName || 'Bank'}</span>
+                      </div>
+                      <span className="text-[10px] text-[#A7B8AE]">
+                        Holder: <span className="text-slate-200 font-medium">{w.bankAccount?.accountHolderName || w.bankDetails?.accountHolderName || w.user?.name}</span>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-emerald-500/10">
+                      <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 select-all">
+                        <span>A/C: {w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || (w.bankAccount?.accountNumberLast4 ? `****${w.bankAccount.accountNumberLast4}` : 'N/A')}</span>
+                        {(w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || w.bankAccount?.accountNumberLast4) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const acc = w.bankAccount?.accountNumber || w.bankDetails?.accountNumber || w.bankAccount?.accountNumberLast4;
+                              navigator.clipboard.writeText(acc);
+                              showToast('Account number copied!', 'success');
+                            }}
+                            className="text-gray-400 hover:text-white ml-0.5 cursor-pointer"
+                            title="Copy Account Number"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 text-[11px] font-mono text-[#F4D06F] bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 select-all">
+                        <span>IFSC: {w.bankAccount?.ifsc || w.bankDetails?.ifsc || 'N/A'}</span>
+                        {(w.bankAccount?.ifsc || w.bankDetails?.ifsc) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const ifsc = w.bankAccount?.ifsc || w.bankDetails?.ifsc;
+                              navigator.clipboard.writeText(ifsc);
+                              showToast('IFSC copied!', 'success');
+                            }}
+                            className="text-gray-400 hover:text-white cursor-pointer"
+                            title="Copy IFSC"
+                          >
+                            <Copy className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-end gap-1.5 pt-1">

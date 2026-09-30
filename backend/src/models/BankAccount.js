@@ -18,6 +18,10 @@ const bankAccountSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    accountNumber: {
+      type: String,
+      trim: true
+    },
     accountNumberEncrypted: {
       type: String,
       required: true

@@ -40,6 +40,7 @@ export const addBankAccount = async (req, res, next) => {
       user: req.user._id,
       accountHolderName,
       bankName,
+      accountNumber,
       accountNumberEncrypted: encrypted,
       accountNumberLast4: last4,
       ifsc: ifsc.toUpperCase(),

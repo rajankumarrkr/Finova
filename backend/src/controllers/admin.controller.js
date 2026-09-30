@@ -10,6 +10,7 @@ import { Setting } from '../models/Setting.js';
 import { WithdrawalService } from '../services/withdrawal.service.js';
 import { DepositService } from '../services/deposit.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { decrypt } from '../utils/encryption.js';
 
 export const getAdminDashboard = async (req, res, next) => {
   try {
@@ -225,7 +226,36 @@ export const getWithdrawals = async (req, res, next) => {
       .populate('user', 'name email phone')
       .populate('bankAccount');
 
-    return ApiResponse.success(res, 'Admin withdrawal requests retrieved', withdrawals);
+    const formatted = withdrawals.map((w) => {
+      const doc = w.toObject ? w.toObject() : { ...w };
+
+      // Resolve full account number for admin view
+      let fullAccountNumber = doc.bankDetails?.accountNumber;
+      if (!fullAccountNumber && doc.bankAccount?.accountNumberEncrypted) {
+        try {
+          fullAccountNumber = decrypt(doc.bankAccount.accountNumberEncrypted);
+        } catch (e) {
+          fullAccountNumber = doc.bankAccount.accountNumberLast4;
+        }
+      }
+      if (!fullAccountNumber && doc.bankAccount?.accountNumber) {
+        fullAccountNumber = doc.bankAccount.accountNumber;
+      }
+      if (!fullAccountNumber && doc.bankAccount?.accountNumberLast4) {
+        fullAccountNumber = doc.bankAccount.accountNumberLast4;
+      }
+
+      if (!doc.bankAccount && doc.bankDetails) {
+        doc.bankAccount = { ...doc.bankDetails };
+      }
+      if (doc.bankAccount) {
+        doc.bankAccount.accountNumber = fullAccountNumber;
+      }
+
+      return doc;
+    });
+
+    return ApiResponse.success(res, 'Admin withdrawal requests retrieved', formatted);
   } catch (error) {
     next(error);
   }
