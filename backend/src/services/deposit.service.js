@@ -205,12 +205,40 @@ export class DepositService {
       throw err;
     }
 
-    // UTR validation
-    const cleanedUtr = utr ? String(utr).trim() : '';
+    // Strict Proof Validation: Both UTR and Payment Screenshot are required
+    const cleanedUtr = utr ? String(utr).trim() : (deposit.utr || '');
+    const candidateScreenshot = screenshot || deposit.paymentScreenshot;
+    const hasScreenshot = Boolean(candidateScreenshot && typeof candidateScreenshot === 'string' && candidateScreenshot.trim().length > 0);
 
-    if (cleanedUtr) {
-      deposit.utr = cleanedUtr;
+    if (!cleanedUtr && !hasScreenshot) {
+      const err = new Error('Both UTR number and payment receipt screenshot are required');
+      err.statusCode = 400;
+      err.code = 'PROOF_REQUIRED';
+      throw err;
     }
+
+    if (!cleanedUtr) {
+      const err = new Error('Please enter the 12-digit UPI Ref / UTR number');
+      err.statusCode = 400;
+      err.code = 'UTR_REQUIRED';
+      throw err;
+    }
+
+    if (cleanedUtr.length < 6) {
+      const err = new Error('Please enter a valid UTR number (at least 6 characters)');
+      err.statusCode = 400;
+      err.code = 'INVALID_UTR';
+      throw err;
+    }
+
+    if (!hasScreenshot) {
+      const err = new Error('Payment screenshot is required for deposit verification');
+      err.statusCode = 400;
+      err.code = 'SCREENSHOT_REQUIRED';
+      throw err;
+    }
+
+    deposit.utr = cleanedUtr;
 
     if (screenshot) {
       if (typeof screenshot === 'string' && screenshot.startsWith('data:image/')) {

@@ -405,12 +405,20 @@ export const Admin = () => {
   // Status badge helper
   const StatusBadge = ({ status, type = 'deposit' }) => {
     let colorClass = '';
+    let label = (status || 'UNKNOWN').toUpperCase().replace('_', ' ');
+
     if (type === 'deposit') {
-      colorClass = status === 'SUCCESS'
-        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-        : ['VERIFICATION_PENDING', 'PENDING'].includes(status)
-        ? 'bg-amber-400/20 text-amber-300 border-amber-400/30'
-        : 'bg-red-500/20 text-red-400 border-red-500/30';
+      if (status === 'SUCCESS') {
+        colorClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      } else if (status === 'VERIFICATION_PENDING') {
+        colorClass = 'bg-amber-400/20 text-amber-300 border-amber-400/30';
+        label = 'PENDING APPROVAL';
+      } else if (status === 'PENDING') {
+        colorClass = 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+        label = 'AWAITING PROOF';
+      } else {
+        colorClass = 'bg-red-500/20 text-red-400 border-red-500/30';
+      }
     } else if (type === 'withdrawal') {
       colorClass = status === 'completed'
         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
@@ -424,7 +432,7 @@ export const Admin = () => {
     }
     return (
       <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${colorClass}`}>
-        {(status || 'UNKNOWN').toUpperCase().replace('_', ' ')}
+        {label}
       </span>
     );
   };
@@ -523,7 +531,7 @@ export const Admin = () => {
     );
   }
 
-  const pendingDepositsCount = deposits.filter(d => ['PENDING', 'VERIFICATION_PENDING'].includes(d.status)).length;
+  const pendingDepositsCount = deposits.filter(d => d.status === 'VERIFICATION_PENDING').length;
   const pendingWithdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
   return (
@@ -671,7 +679,7 @@ export const Admin = () => {
                       : 'bg-[#061F15] text-[#A7B8AE] hover:text-white'
                   }`}
                 >
-                  {st === 'VERIFICATION_PENDING' ? 'V. PENDING' : st.replace('_', ' ')}
+                  {st === 'VERIFICATION_PENDING' ? 'Pending Approval' : st === 'PENDING' ? 'Awaiting Proof' : st.replace('_', ' ')}
                 </button>
               ))}
               <button
@@ -766,7 +774,7 @@ export const Admin = () => {
                         <StatusBadge status={d.status} type="deposit" />
                       </td>
                       <td className="p-3 text-right">
-                        {['PENDING', 'VERIFICATION_PENDING'].includes(d.status) ? (
+                        {d.status === 'VERIFICATION_PENDING' ? (
                           <div className="flex items-center justify-end gap-2">
                             <button
                               disabled={actioningId === (d._id || d.id)}
@@ -783,6 +791,20 @@ export const Admin = () => {
                             >
                               <X className="w-3.5 h-3.5" />
                               <span>Reject</span>
+                            </button>
+                          </div>
+                        ) : d.status === 'PENDING' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-[10px] text-amber-300/80 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-lg italic">
+                              Awaiting Proof
+                            </span>
+                            <button
+                              disabled={actioningId === (d._id || d.id)}
+                              onClick={() => handleDepositAction(d._id || d.id, 'FAILED')}
+                              className="px-2 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
+                              title="Cancel unsubmitted request"
+                            >
+                              Cancel
                             </button>
                           </div>
                         ) : (
@@ -855,7 +877,7 @@ export const Admin = () => {
                       <span className="text-gray-500 text-[10px] italic">No Screenshot</span>
                     )}
 
-                    {['PENDING', 'VERIFICATION_PENDING'].includes(d.status) ? (
+                    {d.status === 'VERIFICATION_PENDING' ? (
                       <div className="flex items-center gap-1.5">
                         <button
                           disabled={actioningId === (d._id || d.id)}
@@ -872,6 +894,19 @@ export const Admin = () => {
                         >
                           <X className="w-3 h-3" />
                           <span>Reject</span>
+                        </button>
+                      </div>
+                    ) : d.status === 'PENDING' ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-amber-300/80 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-lg italic">
+                          Awaiting Proof
+                        </span>
+                        <button
+                          disabled={actioningId === (d._id || d.id)}
+                          onClick={() => handleDepositAction(d._id || d.id, 'FAILED')}
+                          className="px-2 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg text-[10px] font-semibold transition-all cursor-pointer"
+                        >
+                          Cancel
                         </button>
                       </div>
                     ) : (

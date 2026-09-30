@@ -62,4 +62,64 @@ describe('DepositService Tests', () => {
       expect(res.deposit.upiUri).toContain('pn=FINOVA');
     }
   });
+
+  describe('verifyDeposit Validation', () => {
+    it('rejects verification if both UTR and screenshot are missing', async () => {
+      const mockDeposit = {
+        _id: '607f1f77bcf86cd799439022',
+        status: 'PENDING',
+        save: vi.fn()
+      };
+      const { Deposit } = await import('../src/models/Deposit.js');
+      vi.spyOn(Deposit, 'findOne').mockResolvedValueOnce(mockDeposit);
+
+      await expect(
+        DepositService.verifyDeposit({
+          userId: '507f1f77bcf86cd799439011',
+          depositId: '607f1f77bcf86cd799439022',
+          utr: '',
+          screenshot: ''
+        })
+      ).rejects.toThrow('Both UTR number and payment receipt screenshot are required');
+    });
+
+    it('rejects verification if screenshot is missing', async () => {
+      const mockDeposit = {
+        _id: '607f1f77bcf86cd799439022',
+        status: 'PENDING',
+        save: vi.fn()
+      };
+      const { Deposit } = await import('../src/models/Deposit.js');
+      vi.spyOn(Deposit, 'findOne').mockResolvedValueOnce(mockDeposit);
+
+      await expect(
+        DepositService.verifyDeposit({
+          userId: '507f1f77bcf86cd799439011',
+          depositId: '607f1f77bcf86cd799439022',
+          utr: '423985102948',
+          screenshot: ''
+        })
+      ).rejects.toThrow('Payment screenshot is required');
+    });
+
+    it('rejects verification if UTR is missing or shorter than 6 characters', async () => {
+      const mockDeposit = {
+        _id: '607f1f77bcf86cd799439022',
+        status: 'PENDING',
+        save: vi.fn()
+      };
+      const { Deposit } = await import('../src/models/Deposit.js');
+      vi.spyOn(Deposit, 'findOne').mockResolvedValueOnce(mockDeposit);
+
+      await expect(
+        DepositService.verifyDeposit({
+          userId: '507f1f77bcf86cd799439011',
+          depositId: '607f1f77bcf86cd799439022',
+          utr: '123',
+          screenshot: 'data:image/jpeg;base64,sample'
+        })
+      ).rejects.toThrow('valid UTR number');
+    });
+  });
 });
+

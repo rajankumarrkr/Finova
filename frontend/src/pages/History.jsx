@@ -82,7 +82,7 @@ export const History = () => {
             isPositive: true,
             date: d.createdAt ? new Date(d.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recently',
             rawDate: d.createdAt,
-            status: d.status === 'SUCCESS' ? 'Completed' : d.status === 'VERIFICATION_PENDING' || d.status === 'PENDING' ? 'Processing' : 'Failed',
+            status: d.status === 'SUCCESS' ? 'Completed' : d.status === 'VERIFICATION_PENDING' ? 'Processing' : d.status === 'PENDING' ? 'Awaiting Proof' : 'Failed',
             category: 'Deposits',
             reference: d.paymentReference,
             paymentScreenshot: d.paymentScreenshot,

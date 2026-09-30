@@ -57,6 +57,8 @@ export const TransactionItem = ({ transaction, onClick }) => {
       case 'Processing':
       case 'Pending':
         return <Badge variant="gold" size="sm">Processing</Badge>;
+      case 'Awaiting Proof':
+        return <Badge variant="slate" size="sm">Awaiting Proof</Badge>;
       case 'Failed':
       case 'Rejected':
         return <Badge variant="rose" size="sm">Failed</Badge>;

@@ -214,8 +214,25 @@ export const DepositModal = () => {
   // Submit UTR & Screenshot for verification
   const handleVerifySubmit = async () => {
     if (!depositData?.id) return;
-    if (!utrInput.trim() && !screenshotPreview) {
-      setErrorMsg('Please enter a valid UTR number or upload a payment screenshot');
+
+    const cleanUtr = utrInput.trim();
+    if (!cleanUtr && !screenshotPreview) {
+      setErrorMsg('Both 12-digit UTR number and payment receipt screenshot are required before submitting.');
+      return;
+    }
+
+    if (!cleanUtr) {
+      setErrorMsg('Please enter the 12-digit UPI Ref / UTR number.');
+      return;
+    }
+
+    if (cleanUtr.length < 6) {
+      setErrorMsg('Please enter a valid UTR number (at least 6 characters, typically 12 digits).');
+      return;
+    }
+
+    if (!screenshotPreview) {
+      setErrorMsg('Please upload your payment receipt screenshot before submitting.');
       return;
     }
 
@@ -656,13 +673,17 @@ export const DepositModal = () => {
               {/* UTR Number Input */}
               <div>
                 <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1">
-                  12-Digit UPI Ref / UTR No.
+                  12-Digit UPI Ref / UTR No. <span className="text-red-400 font-bold">*</span>
                 </label>
                 <input
                   type="text"
                   value={utrInput}
-                  onChange={(e) => setUtrInput(e.target.value)}
-                  placeholder="e.g. 423985102948"
+                  maxLength={25}
+                  onChange={(e) => {
+                    setUtrInput(e.target.value.replace(/[^a-zA-Z0-9]/g, ''));
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  placeholder="e.g. 423985102948 (12 digits)"
                   className="w-full px-3 py-2 bg-[#031C12] border border-emerald-500/20 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition-colors placeholder:text-[#A7B8AE]/40"
                 />
               </div>
@@ -670,7 +691,7 @@ export const DepositModal = () => {
               {/* Payment Screenshot Upload Zone */}
               <div>
                 <label className="block text-[10px] font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1">
-                  Payment Screenshot (Optional)
+                  Payment Screenshot Proof <span className="text-red-400 font-bold">*</span>
                 </label>
                 <input
                   type="file"
@@ -713,10 +734,24 @@ export const DepositModal = () => {
                     className="w-full py-2.5 px-3 bg-[#031C12] hover:bg-[#07291c] border border-dashed border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-xs text-[#A7B8AE] hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer group"
                   >
                     <Upload className="w-4 h-4 text-[#F4D06F] group-hover:scale-110 transition-transform" />
-                    <span className="font-medium">Upload payment screenshot</span>
+                    <span className="font-medium">Upload payment receipt screenshot</span>
                   </button>
                 )}
               </div>
+
+              {/* Requirement reminder when either is missing */}
+              {(!utrInput.trim() || !screenshotPreview) && (
+                <div className="text-[11px] text-amber-400/90 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span>
+                    {!utrInput.trim() && !screenshotPreview
+                      ? 'Both 12-digit UTR number and receipt screenshot are required.'
+                      : !utrInput.trim()
+                      ? '12-digit UTR number is required.'
+                      : 'Payment receipt screenshot is required.'}
+                  </span>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="pt-1">
@@ -725,6 +760,7 @@ export const DepositModal = () => {
                   variant="primary"
                   fullWidth
                   loading={verifying}
+                  disabled={verifying || !utrInput.trim() || !screenshotPreview}
                   onClick={handleVerifySubmit}
                 >
                   Submit Payment Proof
