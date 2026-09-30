@@ -42,6 +42,7 @@ export const DepositModal = () => {
   const [screenshotName, setScreenshotName] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
+  const [isEditingProof, setIsEditingProof] = useState(false);
 
   // Polling ref
   const pollIntervalRef = useRef(null);
@@ -95,6 +96,7 @@ export const DepositModal = () => {
       setUtrInput('');
       setScreenshotPreview('');
       setScreenshotName('');
+      setIsEditingProof(false);
       setLoading(false);
       setVerifying(false);
     }, 300);
@@ -177,9 +179,9 @@ export const DepositModal = () => {
   };
 
   // Submit UTR & Screenshot for verification
-  const handleVerifySubmit = async (autoApprove = false) => {
+  const handleVerifySubmit = async () => {
     if (!depositData?.id) return;
-    if (!autoApprove && !utrInput.trim() && !screenshotPreview) {
+    if (!utrInput.trim() && !screenshotPreview) {
       setErrorMsg('Please enter a valid UTR number or upload a payment screenshot');
       return;
     }
@@ -193,18 +195,19 @@ export const DepositModal = () => {
         {
           utr: utrInput.trim(),
           screenshot: screenshotPreview,
-          autoApprove
+          autoApprove: false
         }
       );
 
       if (res?.success && res.deposit) {
         setDepositData((prev) => ({ ...prev, ...res.deposit }));
+        setIsEditingProof(false);
         if (res.deposit.status === 'SUCCESS') {
           showToast('Payment verified successfully! Wallet credited.', 'success');
-          await refreshAppData();
         } else {
-          showToast('Payment screenshot & details submitted! Verification in progress.', 'info');
+          showToast('Payment submitted successfully! Please wait for admin approval.', 'success');
         }
+        await refreshAppData();
       } else {
         setErrorMsg(res?.message || 'Verification failed');
       }
@@ -361,7 +364,7 @@ export const DepositModal = () => {
               {depositData.status === 'SUCCESS' ? (
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
               ) : depositData.status === 'VERIFICATION_PENDING' ? (
-                <Clock className="w-5 h-5 text-amber-400 animate-spin" />
+                <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
               ) : (
                 <Clock className="w-5 h-5 text-emerald-400 animate-pulse" />
               )}
@@ -374,7 +377,7 @@ export const DepositModal = () => {
                     <span className="text-emerald-400">Deposit Successful (+₹{depositData.amount?.toLocaleString('en-IN')})</span>
                   )}
                   {depositData.status === 'VERIFICATION_PENDING' && (
-                    <span className="text-amber-400">Payment received — verification in progress</span>
+                    <span className="text-amber-400">Payment submitted — waiting for admin approval</span>
                   )}
                   {depositData.status === 'PENDING' && (
                     <span className="text-emerald-300">Waiting for payment...</span>
@@ -453,8 +456,66 @@ export const DepositModal = () => {
             </button>
           </div>
 
+          {/* VERIFICATION_PENDING State display */}
+          {depositData.status === 'VERIFICATION_PENDING' && !isEditingProof && (
+            <div className="p-6 bg-[#061F15] border border-amber-400/30 rounded-2xl text-center space-y-4 shadow-2xl">
+              <div className="w-16 h-16 bg-amber-400/10 border border-amber-400/30 rounded-full flex items-center justify-center mx-auto text-[#F4D06F] shadow-inner">
+                <Clock className="w-8 h-8 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-xl font-extrabold text-white">Payment Proof Submitted!</h3>
+                <p className="text-sm font-semibold text-[#F4D06F] mt-1">
+                  Please wait for payment approval
+                </p>
+                <p className="text-xs text-[#A7B8AE] mt-2 max-w-sm mx-auto leading-relaxed">
+                  Your payment details have been sent to admin for verification. Your wallet will be automatically credited once approved (usually within 15–30 minutes).
+                </p>
+              </div>
+
+              {/* Submitted Summary Details */}
+              <div className="p-3.5 bg-[#031C12] border border-emerald-500/16 rounded-xl text-left text-xs space-y-2">
+                <div className="flex justify-between items-center text-[#A7B8AE]">
+                  <span>Deposit Amount:</span>
+                  <span className="font-mono font-bold text-[#F4D06F]">
+                    ₹{depositData.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[#A7B8AE]">
+                  <span>Payment Reference:</span>
+                  <span className="font-mono text-white">{depositData.paymentReference}</span>
+                </div>
+                {depositData.utr && (
+                  <div className="flex justify-between items-center text-[#A7B8AE]">
+                    <span>Submitted UTR / Ref:</span>
+                    <span className="font-mono text-emerald-400 font-bold">{depositData.utr}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-[#A7B8AE]">
+                  <span>Current Status:</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 font-semibold text-[11px] border border-amber-400/20">
+                    <Clock className="w-3 h-3" /> Waiting for Approval
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Button variant="primary" fullWidth onClick={handleClose}>
+                  Done
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProof(true)}
+                  className="text-xs text-[#A7B8AE] hover:text-[#F4D06F] underline transition-colors cursor-pointer"
+                >
+                  Need to re-enter UTR or upload new receipt?
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* QR Code Container with High-Contrast White Background & Gold Accents */}
-          {depositData.status !== 'SUCCESS' && (
+          {depositData.status !== 'SUCCESS' && (depositData.status !== 'VERIFICATION_PENDING' || isEditingProof) && (
             <div className="p-4 bg-gradient-to-b from-[#0A261A] to-[#061F15] border border-emerald-500/25 rounded-2xl flex flex-col items-center justify-center space-y-3 relative overflow-hidden shadow-xl">
               <div className="text-center">
                 <span className="text-xs font-semibold text-[#F4D06F] uppercase tracking-widest flex items-center justify-center gap-1">
@@ -519,7 +580,7 @@ export const DepositModal = () => {
           )}
 
           {/* Payment Verification / UTR & Screenshot Submission Section */}
-          {depositData.status !== 'SUCCESS' && (
+          {depositData.status !== 'SUCCESS' && (depositData.status !== 'VERIFICATION_PENDING' || isEditingProof) && (
             <div className="p-4 bg-[#061F15] border border-emerald-500/20 rounded-2xl space-y-3">
               <div className="text-xs font-semibold text-white flex items-center justify-between">
                 <span>Upload Payment Proof / UTR</span>
@@ -590,28 +651,16 @@ export const DepositModal = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="pt-1">
                 <Button
                   type="button"
                   variant="primary"
                   fullWidth
                   loading={verifying}
-                  onClick={() => handleVerifySubmit(false)}
+                  onClick={handleVerifySubmit}
                 >
-                  Submit UTR / Proof
+                  Submit Payment Proof
                 </Button>
-
-                {/* Instant Verification Demo Button for testing */}
-                <button
-                  type="button"
-                  onClick={() => handleVerifySubmit(true)}
-                  disabled={verifying}
-                  className="px-3 py-2.5 bg-[#123A29] hover:bg-emerald-800/60 border border-amber-400/30 text-[#F4D06F] rounded-xl text-xs font-bold shrink-0 flex items-center gap-1 transition-all cursor-pointer"
-                  title="Instant Verify for Demo/Testing"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Verify Now</span>
-                </button>
               </div>
 
               {/* Instructions */}
@@ -621,7 +670,7 @@ export const DepositModal = () => {
                   <li>Scan the QR code using any UPI app (GPay, PhonePe, Paytm, BHIM).</li>
                   <li>Confirm the exact amount (₹{depositData.amount?.toLocaleString('en-IN')}) before paying.</li>
                   <li>Complete the payment and enter the 12-digit UTR or upload receipt screenshot.</li>
-                  <li>Click Submit UTR / Proof to verify your deposit.</li>
+                  <li>Click Submit Payment Proof. Our team will verify and approve your deposit.</li>
                 </ol>
               </div>
             </div>
