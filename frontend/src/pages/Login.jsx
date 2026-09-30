@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Phone, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Shield, CheckCircle2 } from 'lucide-react';
 
 export const Login = () => {
-  const { login, showToast } = useApp();
+  const { login, showToast, openTelegramSupport } = useApp();
   const navigate = useNavigate();
 
   const [mobile, setMobile] = useState('');
@@ -147,7 +147,10 @@ export const Login = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => showToast && showToast('Please contact customer support to reset your password.', 'info')}
+                  onClick={() => {
+                    openTelegramSupport();
+                    showToast && showToast('Redirecting to Telegram support to reset your password.', 'info');
+                  }}
                   className="text-[11px] sm:text-xs text-[#F4D06F] hover:underline cursor-pointer"
                 >
                   Forgot Password?

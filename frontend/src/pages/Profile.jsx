@@ -18,7 +18,6 @@ import {
   History,
   TrendingUp,
   Building2,
-  Lock,
   HelpCircle,
   FileText,
   LogOut,
@@ -36,11 +35,10 @@ import {
 } from 'lucide-react';
 
 export const Profile = () => {
-  const { user, setUser, setIsSupportOpen, showToast, logout } = useApp();
+  const { user, setUser, openTelegramSupport, showToast, logout } = useApp();
   const navigate = useNavigate();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
   const [editName, setEditName] = useState(user.name);
@@ -203,16 +201,10 @@ export const Profile = () => {
       action: () => navigate('/history')
     },
     {
-      title: "Security",
-      subtitle: "Two-factor authentication and withdrawal PIN",
-      icon: Lock,
-      action: () => setIsSecurityModalOpen(true)
-    },
-    {
       title: "Help & Support",
-      subtitle: "24/7 dedicated investor relationship team",
+      subtitle: "24/7 dedicated Telegram investor support",
       icon: HelpCircle,
-      action: () => setIsSupportOpen(true)
+      action: openTelegramSupport
     },
     {
       title: "Terms of Service",
@@ -503,33 +495,6 @@ export const Profile = () => {
         </form>
       </Modal>
 
-      {/* SECURITY MODAL */}
-      <Modal
-        isOpen={isSecurityModalOpen}
-        onClose={() => setIsSecurityModalOpen(false)}
-        title="Security & PIN Code"
-        subtitle="Manage account protection"
-      >
-        <div className="space-y-4 text-xs text-[#A7B8AE]">
-          <div className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16 flex items-center justify-between">
-            <div>
-              <h5 className="font-bold text-[#F8FAFC] text-sm">Two-Factor Authentication</h5>
-              <p className="text-[#71857A] mt-0.5">Required for all IMPS withdrawals</p>
-            </div>
-            <Badge variant="emerald" size="sm">ENABLED</Badge>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16 flex items-center justify-between">
-            <div>
-              <h5 className="font-bold text-[#F8FAFC] text-sm">Withdrawal PIN</h5>
-              <p className="text-[#71857A] mt-0.5">Security code for transfers</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => { showToast('PIN reset link sent to your email', 'info'); setIsSecurityModalOpen(false); }}>Reset PIN</Button>
-          </div>
-
-          <Button variant="secondary" fullWidth onClick={() => setIsSecurityModalOpen(false)}>Close</Button>
-        </div>
-      </Modal>
 
       {/* TERMS MODAL */}
       <Modal

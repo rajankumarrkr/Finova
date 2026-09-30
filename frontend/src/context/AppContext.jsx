@@ -9,6 +9,7 @@ import * as transactionService from '../services/transactionService';
 import * as withdrawalService from '../services/withdrawalService';
 import * as bankService from '../services/bankService';
 import { getErrorMessage } from '../utils/errorHandler';
+import { TELEGRAM_SUPPORT_URL, openTelegramSupport, getTelegramSupportUrl } from '../config/support';
 
 const AppContext = createContext();
 
@@ -71,7 +72,13 @@ export const AppProvider = ({ children }) => {
   const [isInvestOpen, setIsInvestOpen] = useState(false);
   const [selectedPlanForInvest, setSelectedPlanForInvest] = useState(null);
   const [isAddBankOpen, setIsAddBankOpen] = useState(false);
-  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [_isSupportOpen, _setIsSupportOpen] = useState(false);
+  const setIsSupportOpen = useCallback((open) => {
+    if (open) {
+      openTelegramSupport();
+    }
+    _setIsSupportOpen(open);
+  }, []);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // Fetch all user domain data from API
@@ -471,8 +478,11 @@ export const AppProvider = ({ children }) => {
         openInvestModal,
         isAddBankOpen,
         setIsAddBankOpen,
-        isSupportOpen,
+        isSupportOpen: _isSupportOpen,
         setIsSupportOpen,
+        openTelegramSupport,
+        getTelegramSupportUrl,
+        TELEGRAM_SUPPORT_URL,
         isEditProfileOpen,
         setIsEditProfileOpen,
         // Handlers

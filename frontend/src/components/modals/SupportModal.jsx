@@ -2,7 +2,8 @@ import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useApp } from '../../context/AppContext';
-import { Headset, Mail } from 'lucide-react';
+import { Send, Mail } from 'lucide-react';
+import { getTelegramSupportUrl, openTelegramSupport } from '../../config/support';
 
 export const SupportModal = () => {
   const { isSupportOpen, setIsSupportOpen, showToast } = useApp();
@@ -17,23 +18,35 @@ export const SupportModal = () => {
       isOpen={isSupportOpen}
       onClose={() => setIsSupportOpen(false)}
       title="Help & Support Desk"
-      subtitle="24/7 dedicated investor support team"
+      subtitle="24/7 dedicated Telegram & investor support team"
     >
       <div className="space-y-4">
         {/* Support Channels */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div
-            onClick={() => handleContact('Live Chat')}
-            className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/16 hover:border-emerald-500/35 cursor-pointer flex items-center gap-3 transition-all"
+          <a
+            href={getTelegramSupportUrl()}
+            target={getTelegramSupportUrl() !== '#' ? "_blank" : undefined}
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (getTelegramSupportUrl() === '#') {
+                e.preventDefault();
+                openTelegramSupport();
+              }
+              setIsSupportOpen(false);
+            }}
+            className="p-4 rounded-2xl bg-[#061F15] border border-emerald-500/25 hover:border-emerald-400 cursor-pointer flex items-center gap-3 transition-all group"
           >
-            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] border border-emerald-500/30">
-              <Headset className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] border border-emerald-500/30 group-hover:scale-105 transition-transform">
+              <Send className="w-5 h-5" />
             </div>
             <div>
-              <h5 className="text-sm font-bold text-[#F8FAFC]">Live Support Chat</h5>
-              <p className="text-xs text-[#71857A]">Response time &lt; 2 mins</p>
+              <div className="flex items-center gap-2">
+                <h5 className="text-sm font-bold text-[#F8FAFC] group-hover:text-[#34D399] transition-colors">Telegram Support</h5>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-[#34D399] border border-emerald-500/30">Active</span>
+              </div>
+              <p className="text-xs text-[#71857A]">Instant 24/7 dedicated support</p>
             </div>
-          </div>
+          </a>
 
           <div
             onClick={() => handleContact('Email Desk')}

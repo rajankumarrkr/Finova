@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { setIsSupportOpen, logout } = useApp();
+  const { openTelegramSupport, logout } = useApp();
   const navigate = useNavigate();
 
   const mainNavItems = [
@@ -87,8 +87,8 @@ export const Sidebar = () => {
         <p className="text-[11px] font-bold text-[#71857A] uppercase tracking-wider px-3 mb-2">Preferences</p>
         
         <button
-          onClick={() => setIsSupportOpen(true)}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-medium text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#0A261A] transition-all"
+          onClick={openTelegramSupport}
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-sm font-medium text-[#71857A] hover:text-[#00E599] hover:bg-[#0A261A] transition-all cursor-pointer"
         >
           <HelpCircle className="w-5 h-5 shrink-0 text-[#71857A]" />
           <span>Help & Support</span>

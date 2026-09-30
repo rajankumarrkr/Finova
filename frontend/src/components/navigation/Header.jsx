@@ -5,7 +5,7 @@ import { Search, HelpCircle } from 'lucide-react';
 import { getMediaUrl, handleImageError } from '../../utils/media';
 
 export const Header = () => {
-  const { user, setIsSupportOpen } = useApp();
+  const { user, openTelegramSupport } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +29,7 @@ export const Header = () => {
       case '/team':
         return { title: 'Team Overview', subtitle: 'Track your team referrals and earn 10% lifetime rewards.' };
       case '/profile':
-        return { title: 'Investor Profile', subtitle: 'Manage your portfolio settings and security preferences.' };
+        return { title: 'Investor Profile', subtitle: 'Manage your portfolio settings and account preferences.' };
       case '/history':
         return { title: 'Transaction History', subtitle: 'Detailed logs of all deposits, daily returns, and payouts.' };
       case '/bank-account':
@@ -75,11 +75,11 @@ export const Header = () => {
             />
           </form>
 
-          {/* Help Button */}
+          {/* Telegram Support Button */}
           <button
-            onClick={() => setIsSupportOpen(true)}
-            className="p-2.5 rounded-2xl bg-[#031C12] border border-emerald-500/16 text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#0A261A] transition-all focus:outline-none"
-            title="Help & Support"
+            onClick={openTelegramSupport}
+            className="p-2.5 rounded-2xl bg-[#031C12] border border-emerald-500/16 text-[#71857A] hover:text-[#00E599] hover:bg-[#0A261A] transition-all focus:outline-none cursor-pointer"
+            title="Telegram Support"
           >
             <HelpCircle className="w-5 h-5" />
           </button>
