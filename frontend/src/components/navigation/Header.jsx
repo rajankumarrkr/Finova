@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { Bell, Search, HelpCircle } from 'lucide-react';
+import { Search, HelpCircle } from 'lucide-react';
 
 export const Header = () => {
-  const { user, unreadCount, setIsSupportOpen } = useApp();
+  const { user, setIsSupportOpen } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,8 +33,6 @@ export const Header = () => {
         return { title: 'Transaction History', subtitle: 'Detailed logs of all deposits, daily returns, and payouts.' };
       case '/bank-account':
         return { title: 'Bank Account', subtitle: 'Manage your withdrawal account securely.' };
-      case '/notifications':
-        return { title: 'Notifications Center', subtitle: 'Stay updated with your latest earnings and account activity.' };
       default:
         return { title: getDynamicGreeting(), subtitle: "Here's your investment overview" };
     }
@@ -83,18 +81,6 @@ export const Header = () => {
             title="Help & Support"
           >
             <HelpCircle className="w-5 h-5" />
-          </button>
-
-          {/* Notification Button */}
-          <button
-            onClick={() => navigate('/notifications')}
-            className="relative p-2.5 rounded-2xl bg-[#031C12] border border-emerald-500/16 text-[#71857A] hover:text-[#F8FAFC] hover:bg-[#0A261A] transition-all focus:outline-none"
-            title="Notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#F4D06F] rounded-full ring-2 ring-[#031C12] animate-pulse" />
-            )}
           </button>
 
           {/* Profile Avatar */}

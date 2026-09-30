@@ -8,7 +8,6 @@ import * as referralService from './referralService';
 import * as transactionService from './transactionService';
 import * as withdrawalService from './withdrawalService';
 import * as bankService from './bankService';
-import * as notificationService from './notificationService';
 import * as userService from './userService';
 
 export const apiService = {
@@ -56,11 +55,6 @@ export const apiService = {
   getBankAccounts: bankService.getBankAccounts,
   addBankAccount: bankService.addBankAccount,
   deleteBankAccount: bankService.deleteBankAccount,
-
-  // Notifications
-  getNotifications: notificationService.getNotifications,
-  markAsRead: notificationService.markAsRead,
-  markAllAsRead: notificationService.markAllAsRead,
 };
 
 export default api;

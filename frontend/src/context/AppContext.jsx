@@ -8,7 +8,6 @@ import * as referralService from '../services/referralService';
 import * as transactionService from '../services/transactionService';
 import * as withdrawalService from '../services/withdrawalService';
 import * as bankService from '../services/bankService';
-import * as notificationService from '../services/notificationService';
 import { getErrorMessage } from '../utils/errorHandler';
 
 const AppContext = createContext();
@@ -50,7 +49,6 @@ export const AppProvider = ({ children }) => {
   const [activeInvestments, setActiveInvestments] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [plans, setPlans] = useState([]);
 
   // Toast State
@@ -87,7 +85,6 @@ export const AppProvider = ({ children }) => {
         invRes,
         txnRes,
         bankRes,
-        notifRes,
         plansRes,
       ] = await Promise.allSettled([
         authService.getMe(),
@@ -95,7 +92,6 @@ export const AppProvider = ({ children }) => {
         investmentService.getInvestments(),
         transactionService.getTransactions(),
         bankService.getBankAccounts(),
-        notificationService.getNotifications(),
         planService.getPlans(),
       ]);
 
@@ -209,21 +205,7 @@ export const AppProvider = ({ children }) => {
         setBankAccounts(formattedBanks);
       }
 
-      // 6. Notifications
-      if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.data)) {
-        const formattedNotifs = notifRes.value.data.map((n) => ({
-          id: n._id || n.id,
-          title: n.title,
-          description: n.message || n.description,
-          timestamp: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
-          read: n.isRead ?? n.read ?? false,
-          category: n.category || 'General',
-          iconType: n.type || n.iconType || 'dollar',
-        }));
-        setNotifications(formattedNotifs);
-      }
-
-      // 7. Investment Plans
+      // 6. Investment Plans
       if (plansRes.status === 'fulfilled' && plansRes.value?.success && Array.isArray(plansRes.value.data)) {
         setPlans(plansRes.value.data);
       }
@@ -458,30 +440,6 @@ export const AppProvider = ({ children }) => {
     return false;
   };
 
-  // Action: Mark all notifications as read
-  const markAllNotificationsRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      showToast('All notifications marked as read', 'info');
-    } catch (err) {
-      // Fallback local update
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    }
-  };
-
-  // Action: Mark single notification read
-  const markNotificationRead = async (id) => {
-    try {
-      await notificationService.markAsRead(id);
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    } catch (err) {
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    }
-  };
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
   return (
     <AppContext.Provider
       value={{
@@ -499,8 +457,6 @@ export const AppProvider = ({ children }) => {
         activeInvestments,
         transactions,
         bankAccounts,
-        notifications,
-        unreadCount,
         toast,
         showToast,
         closeToast,
@@ -525,8 +481,6 @@ export const AppProvider = ({ children }) => {
         handleWithdrawSubmit,
         handleAddBankAccount,
         handleDeleteBankAccount,
-        markAllNotificationsRead,
-        markNotificationRead,
       }}
     >
       {children}

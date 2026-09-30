@@ -11,12 +11,11 @@ import {
   HelpCircle,
   Settings,
   Shield,
-  LogOut,
-  Bell
+  LogOut
 } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { setIsSupportOpen, unreadCount, logout } = useApp();
+  const { setIsSupportOpen, logout } = useApp();
   const navigate = useNavigate();
 
   const mainNavItems = [
@@ -25,7 +24,6 @@ export const Sidebar = () => {
     { label: 'Team', path: '/team', icon: Users },
     { label: 'History', path: '/history', icon: History },
     { label: 'Bank Account', path: '/bank-account', icon: Building2 },
-    { label: 'Notifications', path: '/notifications', icon: Bell, badge: unreadCount },
     { label: 'Profile', path: '/profile', icon: User }
   ];
 

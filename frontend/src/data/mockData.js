@@ -154,5 +154,3 @@ export const teamMembersList = [];
 export const referralHistoryList = [];
 
 export const initialBankAccounts = [];
-
-export const initialNotificationsList = [];

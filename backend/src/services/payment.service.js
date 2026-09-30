@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import { Payment } from '../models/Payment.js';
 import { paymentConfig } from '../config/payment.js';
 import { WalletService } from './wallet.service.js';
-import { Notification } from '../models/Notification.js';
 
 export class PaymentService {
   /**
@@ -76,15 +75,6 @@ export class PaymentService {
       type: 'deposit',
       reference: `Deposit via ${paymentConfig.provider.toUpperCase()} (${payment.providerPaymentId})`,
       metadata: { paymentId: payment._id.toString() }
-    });
-
-    // Notify User
-    await Notification.create({
-      user: userId,
-      title: 'Deposit Successful',
-      message: `₹${payment.amount.toLocaleString()} has been added to your available balance.`,
-      type: 'dollar',
-      category: 'Deposit'
     });
 
     return payment;

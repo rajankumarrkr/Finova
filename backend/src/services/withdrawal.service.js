@@ -1,7 +1,6 @@
 import { Withdrawal } from '../models/Withdrawal.js';
 import { BankAccount } from '../models/BankAccount.js';
 import { WalletService } from './wallet.service.js';
-import { Notification } from '../models/Notification.js';
 import { generateTransactionId } from '../utils/transactionId.js';
 import { Transaction } from '../models/Transaction.js';
 
@@ -39,15 +38,6 @@ export class WithdrawalService {
       transaction: transaction._id
     });
 
-    // Notify User
-    await Notification.create({
-      user: userId,
-      title: 'Withdrawal Requested',
-      message: `₹${amount.toLocaleString()} withdrawal request to ${bankAccount.bankName} is under processing.`,
-      type: 'arrow-down',
-      category: 'Withdrawal'
-    });
-
     return withdrawal;
   }
 
@@ -78,14 +68,6 @@ export class WithdrawalService {
       const user = await WalletService.releaseHold({ userId: withdrawal.user, amount: 0 }); // release hold logic handled by clearing pending
       user.wallet.pendingBalance = Math.max(0, user.wallet.pendingBalance - withdrawal.amount);
       await user.save();
-
-      await Notification.create({
-        user: withdrawal.user,
-        title: 'Withdrawal Completed',
-        message: `₹${withdrawal.amount.toLocaleString()} payout processed successfully via IMPS.`,
-        type: 'check',
-        category: 'Withdrawal'
-      });
     } else if (status === 'rejected' || status === 'cancelled') {
       if (withdrawal.transaction) {
         withdrawal.transaction.status = 'failed';
@@ -93,14 +75,6 @@ export class WithdrawalService {
       }
       // Release held amount back to available balance
       await WalletService.releaseHold({ userId: withdrawal.user, amount: withdrawal.amount });
-
-      await Notification.create({
-        user: withdrawal.user,
-        title: 'Withdrawal Rejected',
-        message: `₹${withdrawal.amount.toLocaleString()} withdrawal was rejected. Funds returned to your available balance.`,
-        type: 'arrow-down',
-        category: 'Withdrawal'
-      });
     }
 
     await withdrawal.save();

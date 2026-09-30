@@ -17,7 +17,6 @@ import {
   History,
   TrendingUp,
   Building2,
-  Bell,
   Lock,
   HelpCircle,
   FileText,
@@ -201,12 +200,6 @@ export const Profile = () => {
       subtitle: "View logs of all deposits, returns, and payouts",
       icon: History,
       action: () => navigate('/history')
-    },
-    {
-      title: "Notifications",
-      subtitle: "Manage alert preferences and payout digests",
-      icon: Bell,
-      action: () => navigate('/notifications')
     },
     {
       title: "Security",

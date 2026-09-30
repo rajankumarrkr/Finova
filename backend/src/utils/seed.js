@@ -5,7 +5,6 @@ import { InvestmentPlan } from '../models/InvestmentPlan.js';
 import { Investment } from '../models/Investment.js';
 import { BankAccount } from '../models/BankAccount.js';
 import { Transaction } from '../models/Transaction.js';
-import { Notification } from '../models/Notification.js';
 import { generateTransactionId } from './transactionId.js';
 
 const seedData = async () => {
@@ -18,7 +17,6 @@ const seedData = async () => {
   await Investment.deleteMany({});
   await BankAccount.deleteMany({});
   await Transaction.deleteMany({});
-  await Notification.deleteMany({});
 
   console.log('[Seed Script]: Creating Admin & User accounts...');
   const passwordHash = await bcrypt.hash('password123', 10);
@@ -169,24 +167,6 @@ const seedData = async () => {
       direction: 'credit',
       status: 'completed',
       reference: '10% reward on Rahul Kumar deposit'
-    }
-  ]);
-
-  console.log('[Seed Script]: Creating Demo Notifications...');
-  await Notification.create([
-    {
-      user: demoUser._id,
-      title: 'Daily Earning Credited',
-      message: '₹50.00 daily return from Starter Plan was successfully added to your balance.',
-      type: 'dollar',
-      category: 'Earnings'
-    },
-    {
-      user: demoUser._id,
-      title: 'Referral Reward Received',
-      message: 'You received +₹500 referral bonus for team member activation.',
-      type: 'users',
-      category: 'Referral'
     }
   ]);
 

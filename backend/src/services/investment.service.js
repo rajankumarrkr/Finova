@@ -4,7 +4,6 @@ import { Investment } from '../models/Investment.js';
 import { User } from '../models/User.js';
 import { WalletService } from './wallet.service.js';
 import { ReferralService } from './referral.service.js';
-import { Notification } from '../models/Notification.js';
 
 export class InvestmentService {
   static async createInvestment(userId, planId) {
@@ -69,15 +68,6 @@ export class InvestmentService {
         console.error('[Referral Bonus Processing Error]:', err.message);
       }
     }
-
-    // Create Notification
-    await Notification.create({
-      user: userId,
-      title: `${plan.name} Activated`,
-      message: `₹${plan.investmentAmount.toLocaleString()} invested in ${plan.name}. Daily return of ₹${plan.dailyEarning} scheduled!`,
-      type: 'trending',
-      category: 'Investment'
-    });
 
     return investment;
   }

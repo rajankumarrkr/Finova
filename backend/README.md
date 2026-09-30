@@ -40,7 +40,6 @@ backend/
 │   │   ├── payment.controller.js
 │   │   ├── withdrawal.controller.js
 │   │   ├── bank.controller.js
-│   │   ├── notification.controller.js
 │   │   └── admin.controller.js
 │   │
 │   ├── models/
@@ -53,7 +52,6 @@ backend/
 │   │   ├── Payment.js
 │   │   ├── Withdrawal.js
 │   │   ├── BankAccount.js    # Masked & encrypted bank data
-│   │   ├── Notification.js
 │   │   └── AuditLog.js       # Administrative audit trail
 │   │
 │   ├── routes/
@@ -67,7 +65,6 @@ backend/
 │   │   ├── payment.routes.js
 │   │   ├── withdrawal.routes.js
 │   │   ├── bank.routes.js
-│   │   ├── notification.routes.js
 │   │   └── admin.routes.js
 │   │
 │   ├── middleware/
@@ -85,7 +82,6 @@ backend/
 │   │   ├── referral.service.js
 │   │   ├── payment.service.js
 │   │   ├── withdrawal.service.js
-│   │   ├── notification.service.js
 │   │   └── wallet.service.js # Balance & ledger manager
 │   │
 │   ├── jobs/
@@ -172,8 +168,6 @@ Interactive Swagger API docs available at **`http://localhost:5000/api/docs`**.
 | | `/api/withdrawals` | `GET` | View withdrawal history |
 | **Bank Accounts**| `/api/bank-accounts` | `GET` | List linked accounts (masked numbers) |
 | | `/api/bank-accounts` | `POST` | Link new bank account |
-| **Notifications** | `/api/notifications` | `GET` | Get notifications |
-| | `/api/notifications/read-all` | `PATCH` | Mark all notifications read |
 | **Admin** | `/api/admin/dashboard` | `GET` | System-wide statistics |
 | | `/api/admin/users` | `GET` | Search & manage users |
 | | `/api/admin/withdrawals` | `GET` | List pending withdrawal requests |

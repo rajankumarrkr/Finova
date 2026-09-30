@@ -1,7 +1,6 @@
 import { Referral } from '../models/Referral.js';
 import { User } from '../models/User.js';
 import { WalletService } from './wallet.service.js';
-import { Notification } from '../models/Notification.js';
 
 export class ReferralService {
   static async processReferralBonus({ referrerId, referredUserId, eligibleAmount, sourceTransactionId }) {
@@ -34,15 +33,6 @@ export class ReferralService {
       rewardAmount,
       sourceTransaction: sourceTransactionId,
       status: 'credited'
-    });
-
-    // Notify referrer
-    await Notification.create({
-      user: referrerId,
-      title: 'Referral Reward Credited',
-      message: `You received +₹${rewardAmount.toLocaleString()} (10% bonus) for ${referredUser?.name || 'team member'}'s deposit.`,
-      type: 'users',
-      category: 'Referral'
     });
 
     return referralDoc;

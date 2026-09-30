@@ -3,7 +3,6 @@ import QRCode from 'qrcode';
 import mongoose from 'mongoose';
 import { Deposit } from '../models/Deposit.js';
 import { Setting } from '../models/Setting.js';
-import { Notification } from '../models/Notification.js';
 import { WalletService } from './wallet.service.js';
 import { CloudinaryService } from './cloudinary.service.js';
 import { env } from '../config/env.js';
@@ -323,19 +322,6 @@ export class DepositService {
       err.statusCode = 500;
       err.code = 'WALLET_CREDIT_ERROR';
       throw err;
-    }
-
-    // Create Notification
-    try {
-      await Notification.create({
-        user: userId,
-        title: 'Deposit Successful',
-        message: `Your deposit of ₹${updatedDeposit.amount.toLocaleString('en-IN')} has been verified and added to your wallet.`,
-        type: 'deposit',
-        read: false
-      });
-    } catch (notifErr) {
-      console.error('Failed to create notification for deposit:', notifErr);
     }
 
     return {

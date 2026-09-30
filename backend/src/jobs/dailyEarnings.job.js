@@ -2,7 +2,6 @@ import cron from 'node-cron';
 import { Investment } from '../models/Investment.js';
 import { Earning } from '../models/Earning.js';
 import { WalletService } from '../services/wallet.service.js';
-import { Notification } from '../models/Notification.js';
 
 export const runDailyEarningsEngine = async () => {
   console.log('[Daily Earnings Job Started]: Processing daily returns...');
@@ -59,15 +58,6 @@ export const runDailyEarningsEngine = async () => {
         investment.status = 'completed';
       }
       await investment.save();
-
-      // 5. Notify user
-      await Notification.create({
-        user: investment.user,
-        title: 'Daily Earning Credited',
-        message: `+₹${investment.dailyEarning.toLocaleString()} daily return from ${investment.planName} was added to your wallet.`,
-        type: 'dollar',
-        category: 'Earnings'
-      });
 
       processedCount++;
     } catch (err) {
