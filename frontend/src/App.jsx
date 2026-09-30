@@ -52,8 +52,11 @@ function AppContent() {
 
   if (isAuthPage) {
     return (
-      <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col antialiased">
-        <main className="flex-1 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#031C12] text-slate-100 flex flex-col antialiased relative overflow-x-hidden selection:bg-emerald-500/30 selection:text-white">
+        {/* Ambient Emerald & Gold Backdrops */}
+        <div className="fixed top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-[#F4D06F]/5 rounded-full blur-3xl pointer-events-none" />
+        <main className="flex-1 flex items-center justify-center p-3.5 sm:p-6 lg:p-8 relative z-10 w-full">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
