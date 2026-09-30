@@ -4,9 +4,11 @@ import { useApp } from '../context/AppContext';
 import { Card } from '../components/ui/Card';
 import { Tabs } from '../components/ui/Tabs';
 import { TransactionItem } from '../components/cards/TransactionItem';
+import { Modal } from '../components/ui/Modal';
 import { transactionService } from '../services/transactionService';
 import { depositService } from '../services/depositService';
-import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft, Loader2, Wallet } from 'lucide-react';
+import { Search, Filter, ArrowUpRight, TrendingUp, Gift, ArrowDownLeft, Loader2, Wallet, FileImage } from 'lucide-react';
+import { getMediaUrl, handleImageError } from '../utils/media';
 
 export const History = () => {
   const { transactions: appTransactions } = useApp();
@@ -21,6 +23,7 @@ export const History = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedTxn, setSelectedTxn] = useState(null);
 
   useEffect(() => {
     const qTab = queryParams.get('tab');
@@ -82,6 +85,8 @@ export const History = () => {
             status: d.status === 'SUCCESS' ? 'Completed' : d.status === 'VERIFICATION_PENDING' || d.status === 'PENDING' ? 'Processing' : 'Failed',
             category: 'Deposits',
             reference: d.paymentReference,
+            paymentScreenshot: d.paymentScreenshot,
+            utr: d.utr,
           }));
 
           for (const dep of formattedDeposits) {
@@ -202,7 +207,11 @@ export const History = () => {
           </div>
         ) : transactions.length > 0 ? (
           transactions.map((txn) => (
-            <TransactionItem key={txn.id} transaction={txn} />
+            <TransactionItem
+              key={txn.id}
+              transaction={txn}
+              onClick={() => setSelectedTxn(txn)}
+            />
           ))
         ) : (
           <Card className="p-12 text-center text-[#71857A]">
@@ -220,6 +229,67 @@ export const History = () => {
           </Card>
         )}
       </div>
+
+      {/* Transaction & Proof Details Modal */}
+      {selectedTxn && (
+        <Modal
+          isOpen={!!selectedTxn}
+          onClose={() => setSelectedTxn(null)}
+          title="Transaction Details"
+          subtitle={`Reference: ${selectedTxn.reference || selectedTxn.id}`}
+        >
+          <div className="space-y-4">
+            <div className="p-4 bg-[#061F15] border border-emerald-500/20 rounded-2xl space-y-2.5">
+              <div className="flex justify-between items-center text-xs text-[#A7B8AE]">
+                <span>Type:</span>
+                <span className="font-semibold text-white capitalize">{selectedTxn.category || selectedTxn.type}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-[#A7B8AE]">
+                <span>Amount:</span>
+                <span className="font-mono font-bold text-base text-[#F4D06F]">
+                  ₹{Number(selectedTxn.amount).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-[#A7B8AE]">
+                <span>Date & Time:</span>
+                <span className="text-white">{selectedTxn.date}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs text-[#A7B8AE]">
+                <span>Status:</span>
+                <span className={`font-semibold ${
+                  selectedTxn.status === 'Completed' ? 'text-emerald-400' :
+                  selectedTxn.status === 'Processing' ? 'text-amber-400' : 'text-red-400'
+                }`}>
+                  {selectedTxn.status}
+                </span>
+              </div>
+              {selectedTxn.utr && (
+                <div className="flex justify-between items-center text-xs text-[#A7B8AE]">
+                  <span>UTR / Reference:</span>
+                  <span className="font-mono text-emerald-400 font-bold">{selectedTxn.utr}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Proof Screenshot Section if available */}
+            {selectedTxn.paymentScreenshot ? (
+              <div className="p-4 bg-[#061F15] border border-emerald-500/25 rounded-2xl space-y-2.5">
+                <span className="text-xs font-mono font-bold text-[#F4D06F] flex items-center gap-1.5">
+                  <FileImage className="w-4 h-4" /> Attached Payment Proof Screenshot
+                </span>
+                <div className="rounded-xl overflow-hidden border border-emerald-500/30 bg-[#031C12] p-1.5 flex items-center justify-center">
+                  <img
+                    src={getMediaUrl(selectedTxn.paymentScreenshot, 'proof')}
+                    alt="Payment Proof Screenshot"
+                    onError={(e) => handleImageError(e, 'proof')}
+                    className="max-h-72 w-full object-contain rounded-lg"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

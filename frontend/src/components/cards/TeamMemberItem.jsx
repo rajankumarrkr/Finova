@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '../ui/Badge';
 import { Calendar } from 'lucide-react';
+import { getMediaUrl, handleImageError } from '../../utils/media';
 
 export const TeamMemberItem = ({ member }) => {
   const { name, email, status, investment, joinedDate, avatar, rewardEarned } = member;
@@ -10,8 +11,9 @@ export const TeamMemberItem = ({ member }) => {
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 md:p-4 rounded-2xl bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/30 transition-all duration-200 mb-2.5 gap-3">
       <div className="flex items-center gap-3">
         <img
-          src={avatar}
+          src={getMediaUrl(avatar)}
           alt={name}
+          onError={(e) => handleImageError(e, 'avatar')}
           className="w-10 h-10 md:w-11 md:h-11 rounded-full object-cover ring-2 ring-emerald-500/30 shrink-0"
         />
         <div className="min-w-0">

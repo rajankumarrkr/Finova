@@ -29,8 +29,13 @@ import depositRoutes from './routes/deposit.routes.js';
 
 const app = express();
 
-// Security Middlewares
-app.use(helmet());
+// Trust first reverse proxy (Render, Vercel, Cloudflare) for correct protocol & IP resolution
+app.set('trust proxy', 1);
+
+// Security Middlewares - allow cross-origin resource access for uploaded photos/avatars
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 const allowedOrigins = [
   'https://finova-sage.vercel.app',
@@ -56,15 +61,20 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id']
 }));
 
-// Body & Cookie Parsers
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Body & Cookie Parsers (15mb limit to safely handle screenshot image uploads)
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(requestId);
 
-// Static uploads serving (local development fallback)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Static uploads serving with cross-origin & caching headers
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  next();
+}, express.static(path.join(process.cwd(), 'uploads')));
 
 // Root Endpoint
 app.get('/', (req, res) => {

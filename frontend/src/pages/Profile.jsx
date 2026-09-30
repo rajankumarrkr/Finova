@@ -10,6 +10,7 @@ import { formatCurrency } from '../utils/formatters';
 import { updateProfile } from '../services/authService';
 import { userService } from '../services/userService';
 import { getErrorMessage } from '../utils/errorHandler';
+import { getMediaUrl, handleImageError } from '../utils/media';
 import {
   User,
   Mail,
@@ -231,8 +232,9 @@ export const Profile = () => {
             <div className="flex flex-col items-center sm:items-start gap-2">
               <div className="relative group">
                 <img
-                  src={avatarPreview || (typeof user.avatar === 'object' ? user.avatar?.url : user.avatar)}
+                  src={avatarPreview || getMediaUrl(user.avatar)}
                   alt={user.name}
+                  onError={(e) => handleImageError(e, 'avatar')}
                   className={`w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-4 ${
                     avatarPreview ? 'ring-[#F4D06F] animate-pulse' : 'ring-amber-400/30'
                   } shadow-xl transition-all duration-300`}

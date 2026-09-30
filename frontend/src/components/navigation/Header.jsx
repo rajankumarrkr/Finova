@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Search, HelpCircle } from 'lucide-react';
+import { getMediaUrl, handleImageError } from '../../utils/media';
 
 export const Header = () => {
   const { user, setIsSupportOpen } = useApp();
@@ -89,12 +90,13 @@ export const Header = () => {
             className="flex items-center gap-2.5 p-1 md:p-1.5 rounded-2xl bg-[#031C12] border border-emerald-500/16 hover:border-amber-400/40 transition-all focus:outline-none"
           >
             <img
-              src={typeof user.avatar === 'object' ? user.avatar?.url : (user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80')}
+              src={getMediaUrl(user.avatar)}
               alt={user.name}
+              onError={(e) => handleImageError(e, 'avatar')}
               className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover ring-2 ring-gradient-to-r ring-[#10B981] p-0.5"
             />
             <span className="hidden lg:inline-block text-xs font-bold text-[#F8FAFC] pr-1">
-              {user.name.split(' ')[0]}
+              {user.name ? user.name.split(' ')[0] : 'Investor'}
             </span>
           </button>
         </div>

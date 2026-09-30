@@ -165,7 +165,7 @@ export class DepositService {
   /**
    * Submit UTR & Payment Screenshot / request payment verification for deposit.
    */
-  static async verifyDeposit({ userId, depositId, utr, screenshot, autoApprove = false }) {
+  static async verifyDeposit({ userId, depositId, utr, screenshot, autoApprove = false, req = null }) {
     let query = { user: userId };
     if (mongoose.Types.ObjectId.isValid(depositId)) {
       query._id = depositId;
@@ -215,7 +215,7 @@ export class DepositService {
     if (screenshot) {
       if (typeof screenshot === 'string' && screenshot.startsWith('data:image/')) {
         try {
-          const uploadRes = await CloudinaryService.uploadDocument(userId.toString(), screenshot, 'deposits');
+          const uploadRes = await CloudinaryService.uploadDocument(userId.toString(), screenshot, 'deposits', req);
           deposit.paymentScreenshot = uploadRes?.secure_url || screenshot;
         } catch (uploadErr) {
           console.warn('[Deposit Screenshot Upload Warning]:', uploadErr.message);

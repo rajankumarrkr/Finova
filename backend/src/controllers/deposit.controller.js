@@ -51,7 +51,8 @@ export const verifyDeposit = async (req, res, next) => {
       depositId: id,
       utr,
       screenshot: screenshot || paymentScreenshot,
-      autoApprove: Boolean(autoApprove)
+      autoApprove: Boolean(autoApprove),
+      req
     });
 
     return res.status(200).json(result);

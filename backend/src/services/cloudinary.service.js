@@ -69,24 +69,28 @@ export class CloudinaryService {
       };
     }
 
-    // Local development fallback when Cloudinary credentials are not yet added
-    if (process.env.NODE_ENV !== 'production') {
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
+    // Resilient fallback when Cloudinary credentials are not configured or upload fails
+    const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars');
+    try {
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
-
       const filename = `avatar_${userId}_${Date.now()}.png`;
       const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, fileBuffer);
 
-      let baseUrl = `http://localhost:${process.env.PORT || 5000}`;
-      if (req && req.get) {
-        baseUrl = `${req.protocol}://${req.get('host')}`;
+      let baseUrl = (process.env.BACKEND_URL || '').replace(/\/+$/, '');
+      if (!baseUrl) {
+        if (req && req.get) {
+          const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+          baseUrl = `${proto}://${req.get('host')}`;
+        } else {
+          baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+        }
       }
 
       const fileUrl = `${baseUrl}/uploads/avatars/${filename}`;
-      console.log(`[Dev Fallback Upload]: Saved avatar locally to ${filePath} (${fileUrl})`);
+      console.log(`[Avatar Storage]: Saved avatar locally to ${filePath} (${fileUrl})`);
 
       return {
         public_id: `dev_avatar_${filename}`,
@@ -98,11 +102,21 @@ export class CloudinaryService {
         height: 400,
         created_at: new Date().toISOString()
       };
+    } catch (fsErr) {
+      console.warn('[Avatar Storage Fallback]: Local write failed, using data URI fallback:', fsErr.message);
+      // Fail-safe data URI fallback so photo is never lost even if filesystem is read-only
+      const dataUrl = `data:image/png;base64,${fileBuffer.toString('base64')}`;
+      return {
+        public_id: `avatar_${userId}_${Date.now()}`,
+        secure_url: dataUrl,
+        resource_type: 'image',
+        format: 'png',
+        bytes: fileBuffer.length,
+        width: 400,
+        height: 400,
+        created_at: new Date().toISOString()
+      };
     }
-
-    throw new Error(
-      'Cloudinary credentials are not configured. Please define CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment.'
-    );
   }
 
   /**
@@ -112,46 +126,51 @@ export class CloudinaryService {
    * @param {string} userId - User identifier
    * @param {Buffer|string} fileData - File buffer or base64 data URI
    * @param {string} [folderName='documents'] - Subfolder name
+   * @param {Object} [req] - Express request for host resolution
    * @returns {Promise<Object>} Metadata of the uploaded Cloudinary asset
    */
-  static async uploadDocument(userId, fileData, folderName = 'documents') {
+  static async uploadDocument(userId, fileData, folderName = 'documents', req = null) {
     if (!fileData) return null;
 
     if (isCloudinaryConfigured()) {
-      const folder = `finova/users/${userId}/${folderName}`;
-      const options = {
-        folder,
-        resource_type: 'auto',
-        transformation: [
-          { quality: 'auto', fetch_format: 'auto' }
-        ]
-      };
-
-      if (typeof fileData === 'string' && fileData.startsWith('data:')) {
-        const result = await cloudinary.uploader.upload(fileData, options);
-        return {
-          public_id: result.public_id,
-          secure_url: result.secure_url,
-          format: result.format,
-          bytes: result.bytes,
-          created_at: result.created_at
+      try {
+        const folder = `finova/users/${userId}/${folderName}`;
+        const options = {
+          folder,
+          resource_type: 'auto',
+          transformation: [
+            { quality: 'auto', fetch_format: 'auto' }
+          ]
         };
-      }
 
-      if (Buffer.isBuffer(fileData)) {
-        const result = await this.uploadBuffer(fileData, options);
-        return {
-          public_id: result.public_id,
-          secure_url: result.secure_url,
-          format: result.format,
-          bytes: result.bytes,
-          created_at: result.created_at
-        };
+        if (typeof fileData === 'string' && fileData.startsWith('data:')) {
+          const result = await cloudinary.uploader.upload(fileData, options);
+          return {
+            public_id: result.public_id,
+            secure_url: result.secure_url,
+            format: result.format,
+            bytes: result.bytes,
+            created_at: result.created_at
+          };
+        }
+
+        if (Buffer.isBuffer(fileData)) {
+          const result = await this.uploadBuffer(fileData, options);
+          return {
+            public_id: result.public_id,
+            secure_url: result.secure_url,
+            format: result.format,
+            bytes: result.bytes,
+            created_at: result.created_at
+          };
+        }
+      } catch (cloudErr) {
+        console.warn(`[Cloudinary Document Upload Warning]: ${cloudErr.message}. Using resilient fallback.`);
       }
     }
 
-    // Local development fallback
-    if (process.env.NODE_ENV !== 'production') {
+    // Resilient fallback: preserve the image and provide full accessible URL / data URI
+    try {
       const uploadsDir = path.join(process.cwd(), 'uploads', folderName);
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
@@ -167,12 +186,37 @@ export class CloudinaryService {
         fs.writeFileSync(filePath, fileData);
       }
 
+      let baseUrl = (process.env.BACKEND_URL || '').replace(/\/+$/, '');
+      if (!baseUrl) {
+        if (req && req.get) {
+          const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+          baseUrl = `${proto}://${req.get('host')}`;
+        } else {
+          baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+        }
+      }
+
+      // If fileData is already a self-contained base64 data URI, keep it so it works across any domain
+      const secureUrl = (typeof fileData === 'string' && fileData.startsWith('data:image/'))
+        ? fileData
+        : `${baseUrl}/uploads/${folderName}/${filename}`;
+
       return {
-        public_id: `dev_${folderName}_${filename}`,
-        secure_url: `/uploads/${folderName}/${filename}`,
+        public_id: `doc_${folderName}_${filename}`,
+        secure_url: secureUrl,
         format: 'png',
         created_at: new Date().toISOString()
       };
+    } catch (fsErr) {
+      console.warn('[Document Storage Fallback]: Local write failed, using base64 data URI:', fsErr.message);
+      if (typeof fileData === 'string' && fileData.startsWith('data:')) {
+        return {
+          public_id: `doc_${folderName}_${Date.now()}`,
+          secure_url: fileData,
+          format: 'png',
+          created_at: new Date().toISOString()
+        };
+      }
     }
 
     return null;

@@ -258,7 +258,7 @@ export const getDeposits = async (req, res, next) => {
 
     let deposits = await Deposit.find(query)
       .sort({ createdAt: -1 })
-      .populate('user', 'name email phone');
+      .populate('user', 'name email phone avatar');
 
     if (search) {
       const searchLower = search.toLowerCase();

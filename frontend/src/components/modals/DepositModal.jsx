@@ -20,8 +20,11 @@ import {
   Sparkles,
   Upload,
   Image as ImageIcon,
-  Trash2
+  Trash2,
+  X,
+  FileImage
 } from 'lucide-react';
+import { getMediaUrl, handleImageError } from '../../utils/media';
 
 export const DepositModal = () => {
   const { isDepositOpen, setIsDepositOpen, refreshAppData, showToast } = useApp();
@@ -43,6 +46,7 @@ export const DepositModal = () => {
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [isEditingProof, setIsEditingProof] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
 
   // Polling ref
   const pollIntervalRef = useRef(null);
@@ -51,7 +55,7 @@ export const DepositModal = () => {
   // Presets as specified: ₹500, ₹1,000, ₹2,000, ₹5,000, ₹10,000
   const presets = [500, 1000, 2000, 5000, 10000];
 
-  // Handle Screenshot File Selection
+  // Handle Screenshot File Selection with fast auto-compression
   const handleScreenshotChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -61,17 +65,46 @@ export const DepositModal = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('Screenshot file size must be less than 5MB');
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg('Screenshot file size must be less than 10MB');
       return;
     }
 
     setErrorMsg('');
     setScreenshotName(file.name);
 
+    // Read and compress via Canvas to ensure fast upload & rendering
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setScreenshotPreview(reader.result);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1200;
+        const maxHeight = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        setScreenshotPreview(compressedDataUrl);
+      };
+      img.onerror = () => {
+        setScreenshotPreview(event.target.result);
+      };
+      img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -497,6 +530,39 @@ export const DepositModal = () => {
                     <Clock className="w-3 h-3" /> Waiting for Approval
                   </span>
                 </div>
+
+                {/* Display uploaded screenshot proof right inside the confirmation card */}
+                {(depositData.paymentScreenshot || screenshotPreview) && (
+                  <div className="pt-2 border-t border-emerald-500/16">
+                    <span className="text-[11px] text-[#A7B8AE] block mb-1.5 font-semibold">
+                      Uploaded Payment Proof:
+                    </span>
+                    <div className="flex items-center gap-3 bg-[#061F15] p-2 rounded-xl border border-emerald-500/20">
+                      <img
+                        src={getMediaUrl(depositData.paymentScreenshot || screenshotPreview, 'proof')}
+                        alt="Payment Proof Thumbnail"
+                        onError={(e) => handleImageError(e, 'proof')}
+                        className="w-14 h-14 object-cover rounded-lg border border-emerald-500/40 shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
+                        onClick={() => setShowProofModal(true)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-white block truncate">
+                          {screenshotName || 'Payment Screenshot'}
+                        </span>
+                        <span className="text-[10px] text-emerald-400 block mt-0.5">
+                          ✓ Attached & submitted to admin
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowProofModal(true)}
+                          className="text-[10px] text-[#F4D06F] hover:underline font-semibold mt-1 flex items-center gap-1 cursor-pointer"
+                        >
+                          <FileImage className="w-3 h-3" /> View full photo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 pt-2">
@@ -618,9 +684,11 @@ export const DepositModal = () => {
                   <div className="p-2 bg-[#031C12] border border-emerald-500/30 rounded-xl flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <img
-                        src={screenshotPreview}
+                        src={getMediaUrl(screenshotPreview, 'proof')}
                         alt="Payment Screenshot Preview"
-                        className="w-10 h-10 object-cover rounded-lg border border-emerald-500/30 shrink-0"
+                        onError={(e) => handleImageError(e, 'proof')}
+                        className="w-12 h-12 object-cover rounded-lg border border-emerald-500/40 shrink-0 cursor-pointer hover:opacity-85"
+                        onClick={() => setShowProofModal(true)}
                       />
                       <div className="truncate text-xs">
                         <span className="text-white font-medium block truncate max-w-[170px]">
@@ -675,6 +743,43 @@ export const DepositModal = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Modal image preview for payment screenshot */}
+      {showProofModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative bg-[#0A261A] border border-emerald-500/40 rounded-2xl p-4 max-w-lg w-full max-h-[85vh] flex flex-col items-center shadow-2xl">
+            <div className="w-full flex items-center justify-between mb-3 border-b border-emerald-500/20 pb-2">
+              <span className="text-xs font-mono font-bold text-[#F4D06F] flex items-center gap-1.5">
+                <FileImage className="w-4 h-4" /> Uploaded Payment Proof
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowProofModal(false)}
+                className="p-1 text-[#A7B8AE] hover:text-white rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="w-full flex-1 overflow-auto flex items-center justify-center p-2">
+              <img
+                src={getMediaUrl(depositData?.paymentScreenshot || screenshotPreview, 'proof')}
+                alt="Payment Proof Preview"
+                onError={(e) => handleImageError(e, 'proof')}
+                className="max-w-full max-h-[60vh] object-contain rounded-xl border border-emerald-500/30"
+              />
+            </div>
+            <div className="w-full pt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowProofModal(false)}
+                className="px-4 py-2 bg-[#123A29] text-[#F4D06F] hover:bg-emerald-800/60 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Modal>
