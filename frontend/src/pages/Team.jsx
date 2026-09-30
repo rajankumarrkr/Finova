@@ -10,6 +10,7 @@ import { teamMembersList, referralHistoryList } from '../data/mockData';
 import * as referralService from '../services/referralService';
 import {
   Copy,
+  Link2,
   Share2,
   Users,
   UserCheck,
@@ -24,6 +25,7 @@ import {
 export const Team = () => {
   const { user, showToast } = useApp();
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +40,35 @@ export const Team = () => {
   const [history, setHistory] = useState([]);
 
   const referralCode = user.referralCode || 'FINOVA123';
-  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  
+  // Safe Frontend Client URL Resolver
+  const getAppUrl = () => {
+    // 1. Current browser window origin is always the true frontend origin
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      const origin = window.location.origin;
+      // Safety check: ensure origin is not the backend API URL
+      if (!origin.includes('onrender.com') && !origin.includes(':5000')) {
+        return origin.replace(/\/+$/, '');
+      }
+    }
+
+    // 2. VITE_APP_URL env variable fallback (clean /api or trailing slashes)
+    let envAppUrl = import.meta.env.VITE_APP_URL;
+    if (envAppUrl && typeof envAppUrl === 'string') {
+      envAppUrl = envAppUrl.trim().replace(/\/+$/, '');
+      if (envAppUrl.endsWith('/api')) {
+        envAppUrl = envAppUrl.slice(0, -4);
+      }
+      if (!envAppUrl.includes('onrender.com') && !envAppUrl.includes(':5000')) {
+        return envAppUrl;
+      }
+    }
+
+    // 3. Fallback to production frontend domain
+    return 'https://finova-sage.vercel.app';
+  };
+
+  const appUrl = getAppUrl();
   const referralUrl = `${appUrl}/register?ref=${referralCode}`;
 
   useEffect(() => {
@@ -101,10 +131,18 @@ export const Team = () => {
     });
   };
 
+  const handleCopyLink = () => {
+    copyToClipboard(referralUrl, () => {
+      setCopiedLink(true);
+      showToast('Referral link copied to clipboard!', 'success');
+      setTimeout(() => setCopiedLink(false), 3000);
+    });
+  };
+
   const handleShare = async () => {
     const shareData = {
       title: 'Join Finova Wealth',
-      text: `Use my referral code ${referralCode} to get exclusive investment perks on Finova!`,
+      text: `Join Finova with my referral link and get exclusive investment perks:\n${referralUrl}`,
       url: referralUrl,
     };
 
@@ -114,11 +152,11 @@ export const Team = () => {
         showToast('Shared successfully!', 'success');
       } catch (err) {
         if (err.name !== 'AbortError') {
-          handleCopyCode();
+          handleCopyLink();
         }
       }
     } else {
-      handleCopyCode();
+      handleCopyLink();
     }
   };
 
@@ -169,11 +207,27 @@ export const Team = () => {
               <Button
                 variant="secondary"
                 size="md"
+                icon={copiedLink ? CheckCircle2 : Link2}
+                onClick={handleCopyLink}
+              >
+                {copiedLink ? 'Link Copied!' : 'Copy Link'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="md"
                 icon={Share2}
                 onClick={handleShare}
               >
-                Share Link
+                Share
               </Button>
+            </div>
+
+            {/* Referral Link Display */}
+            <div className="mt-3 flex items-center gap-2 max-w-xl">
+              <div className="flex-1 truncate px-3.5 py-2 bg-[#031C12]/90 border border-emerald-500/20 rounded-xl text-xs font-mono text-[#A7B8AE] select-all">
+                {referralUrl}
+              </div>
             </div>
           </div>
 

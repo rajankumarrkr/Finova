@@ -27,7 +27,8 @@ import {
   Briefcase,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 
 export const Admin = () => {

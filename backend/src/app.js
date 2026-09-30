@@ -106,6 +106,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api', authRoutes); // Aliases for /api/register, /api/login, etc.
 app.use('/api/user', userRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', userRoutes); // Dashboard metrics & performance endpoints
@@ -121,6 +122,22 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/deposits', depositRoutes);
 app.use('/api/deposit', depositRoutes);
+
+// Referral & Registration Browser Redirect Handler
+// When users click referral links pointing to backend directly (e.g. /api/register?ref=CODE),
+// redirect them smoothly to the frontend client URL
+app.get(['/register', '/api/register', '/auth/register', '/api/auth/register'], (req, res) => {
+  const ref = req.query.ref || req.query.referral || req.query.code || '';
+  const frontendBase = (env.CLIENT_URL && !env.CLIENT_URL.includes('localhost') && !env.CLIENT_URL.includes('127.0.0.1'))
+    ? env.CLIENT_URL.replace(/\/+$/, '')
+    : (env.NODE_ENV === 'production' ? 'https://finova-sage.vercel.app' : (env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, ''));
+
+  const redirectTarget = ref
+    ? `${frontendBase}/register?ref=${encodeURIComponent(ref)}`
+    : `${frontendBase}/register`;
+
+  return res.redirect(302, redirectTarget);
+});
 
 // 404 Route Not Found Handler
 app.use((req, res) => {

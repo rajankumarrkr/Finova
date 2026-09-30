@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from '../components/ui/Button';
@@ -13,7 +13,9 @@ export const Register = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [referralCode, setReferralCode] = useState(searchParams.get('ref') || '');
+  
+  const initialRef = (searchParams.get('ref') || searchParams.get('referral') || searchParams.get('code') || '').trim().toUpperCase();
+  const [referralCode, setReferralCode] = useState(initialRef);
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
