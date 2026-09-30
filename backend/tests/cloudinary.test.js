@@ -79,6 +79,38 @@ describe('Cloudinary Integration & Upload Validation Tests', () => {
 
       vi.restoreAllMocks();
     });
+
+    it('should upload document or deposit receipt to specified folder', async () => {
+      process.env.CLOUDINARY_CLOUD_NAME = 'finova-test';
+      process.env.CLOUDINARY_API_KEY = '1234567890';
+      process.env.CLOUDINARY_API_SECRET = 'mock_secret_abc123';
+
+      const mockUploadDocResult = {
+        public_id: 'finova/users/user123/deposits/receipt_99',
+        secure_url: 'https://res.cloudinary.com/finova/image/upload/v1234/receipt.png',
+        format: 'png',
+        bytes: 5120,
+        created_at: '2026-09-30T00:00:00Z'
+      };
+
+      const cloudinary = (await import('../src/config/cloudinary.js')).default;
+      vi.spyOn(cloudinary.uploader, 'upload').mockResolvedValue(mockUploadDocResult);
+
+      const result = await CloudinaryService.uploadDocument('user123', 'data:image/png;base64,fake-data', 'deposits');
+
+      expect(cloudinary.uploader.upload).toHaveBeenCalledWith(
+        'data:image/png;base64,fake-data',
+        expect.objectContaining({
+          folder: 'finova/users/user123/deposits',
+          resource_type: 'auto'
+        })
+      );
+
+      expect(result.public_id).toBe(mockUploadDocResult.public_id);
+      expect(result.secure_url).toBe(mockUploadDocResult.secure_url);
+
+      vi.restoreAllMocks();
+    });
   });
 
   describe('Asset Deletion Handling', () => {

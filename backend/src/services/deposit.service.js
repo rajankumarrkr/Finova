@@ -5,6 +5,7 @@ import { Deposit } from '../models/Deposit.js';
 import { Setting } from '../models/Setting.js';
 import { Notification } from '../models/Notification.js';
 import { WalletService } from './wallet.service.js';
+import { CloudinaryService } from './cloudinary.service.js';
 import { env } from '../config/env.js';
 
 export class DepositService {
@@ -213,7 +214,17 @@ export class DepositService {
     }
 
     if (screenshot) {
-      deposit.paymentScreenshot = screenshot;
+      if (typeof screenshot === 'string' && screenshot.startsWith('data:image/')) {
+        try {
+          const uploadRes = await CloudinaryService.uploadDocument(userId.toString(), screenshot, 'deposits');
+          deposit.paymentScreenshot = uploadRes?.secure_url || screenshot;
+        } catch (uploadErr) {
+          console.warn('[Deposit Screenshot Upload Warning]:', uploadErr.message);
+          deposit.paymentScreenshot = screenshot;
+        }
+      } else {
+        deposit.paymentScreenshot = screenshot;
+      }
     }
 
     deposit.paidAt = deposit.paidAt || new Date();

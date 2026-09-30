@@ -106,6 +106,79 @@ export class CloudinaryService {
   }
 
   /**
+   * Upload user document or payment receipt to Cloudinary.
+   * Folder structured as finova/users/{userId}/{folderName} (e.g. documents, deposits).
+   *
+   * @param {string} userId - User identifier
+   * @param {Buffer|string} fileData - File buffer or base64 data URI
+   * @param {string} [folderName='documents'] - Subfolder name
+   * @returns {Promise<Object>} Metadata of the uploaded Cloudinary asset
+   */
+  static async uploadDocument(userId, fileData, folderName = 'documents') {
+    if (!fileData) return null;
+
+    if (isCloudinaryConfigured()) {
+      const folder = `finova/users/${userId}/${folderName}`;
+      const options = {
+        folder,
+        resource_type: 'auto',
+        transformation: [
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      };
+
+      if (typeof fileData === 'string' && fileData.startsWith('data:')) {
+        const result = await cloudinary.uploader.upload(fileData, options);
+        return {
+          public_id: result.public_id,
+          secure_url: result.secure_url,
+          format: result.format,
+          bytes: result.bytes,
+          created_at: result.created_at
+        };
+      }
+
+      if (Buffer.isBuffer(fileData)) {
+        const result = await this.uploadBuffer(fileData, options);
+        return {
+          public_id: result.public_id,
+          secure_url: result.secure_url,
+          format: result.format,
+          bytes: result.bytes,
+          created_at: result.created_at
+        };
+      }
+    }
+
+    // Local development fallback
+    if (process.env.NODE_ENV !== 'production') {
+      const uploadsDir = path.join(process.cwd(), 'uploads', folderName);
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filename = `doc_${userId}_${Date.now()}.png`;
+      const filePath = path.join(uploadsDir, filename);
+
+      if (typeof fileData === 'string' && fileData.startsWith('data:image/')) {
+        const base64Data = fileData.replace(/^data:image\/\w+;base64,/, '');
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+      } else if (Buffer.isBuffer(fileData)) {
+        fs.writeFileSync(filePath, fileData);
+      }
+
+      return {
+        public_id: `dev_${folderName}_${filename}`,
+        secure_url: `/uploads/${folderName}/${filename}`,
+        format: 'png',
+        created_at: new Date().toISOString()
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Safely deletes an asset from Cloudinary using its public_id.
    * If the asset was created under dev fallback, cleans up the local file.
    *
