@@ -11,7 +11,8 @@ import {
   HelpCircle,
   Settings,
   Shield,
-  LogOut
+  LogOut,
+  Zap
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -20,6 +21,7 @@ export const Sidebar = () => {
 
   const mainNavItems = [
     { label: 'Home', path: '/', icon: LayoutDashboard },
+    { label: 'My Investment', path: '/my-investments', icon: Zap },
     { label: 'Plans', path: '/plans', icon: TrendingUp },
     { label: 'Team', path: '/team', icon: Users },
     { label: 'History', path: '/history', icon: History },

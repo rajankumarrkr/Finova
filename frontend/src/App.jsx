@@ -20,6 +20,7 @@ import { Team } from './pages/Team';
 import { Profile } from './pages/Profile';
 import { History } from './pages/History';
 import { BankAccount } from './pages/BankAccount';
+import { MyInvestments } from './pages/MyInvestments';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Admin } from './pages/Admin';
@@ -125,6 +126,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <BankAccount />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-investments"
+              element={
+                <ProtectedRoute>
+                  <MyInvestments />
                 </ProtectedRoute>
               }
             />

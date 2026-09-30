@@ -60,10 +60,10 @@ export const Home = () => {
             <Button
               variant="gold"
               size="lg"
-              icon={Zap}
-              onClick={() => openInvestModal()}
+              icon={TrendingUp}
+              onClick={() => navigate('/my-investments')}
             >
-              Start Investing
+              My Investments
             </Button>
           </div>
         </div>
@@ -146,13 +146,13 @@ export const Home = () => {
           </button>
 
           <button
-            onClick={() => openInvestModal()}
+            onClick={() => navigate('/my-investments')}
             className="flex flex-col items-center justify-center p-3.5 rounded-[18px] bg-[#0A261A] border border-emerald-500/16 hover:border-emerald-500/40 text-[#F8FAFC] transition-all duration-200 hover:-translate-y-0.5 group shadow-md"
           >
             <div className="p-2.5 rounded-xl bg-emerald-500/15 text-[#34D399] mb-2 group-hover:scale-105 transition-transform">
-              <Zap className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5" />
             </div>
-            <span className="text-xs font-bold">Invest</span>
+            <span className="text-xs font-bold">My Investment</span>
           </button>
 
           <button
@@ -218,8 +218,8 @@ export const Home = () => {
           ) : (
             <Card className="p-8 text-center text-[#71857A]">
               <p>No active investment plans running currently.</p>
-              <Button variant="primary" className="mt-3" onClick={() => openInvestModal()}>
-                Invest Now
+              <Button variant="primary" className="mt-3" onClick={() => navigate('/plans')}>
+                Explore Plans
               </Button>
             </Card>
           )}

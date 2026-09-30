@@ -189,6 +189,12 @@ export const Profile = () => {
       }
     },
     {
+      title: "My Investment",
+      subtitle: "View active plans, daily yields, and payout schedules",
+      icon: TrendingUp,
+      action: () => navigate('/my-investments')
+    },
+    {
       title: "Bank Account",
       subtitle: "Manage verified bank accounts for instant withdrawals",
       icon: Building2,
