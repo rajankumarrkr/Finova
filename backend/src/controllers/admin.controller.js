@@ -11,6 +11,7 @@ import { WithdrawalService } from '../services/withdrawal.service.js';
 import { DepositService } from '../services/deposit.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { decrypt } from '../utils/encryption.js';
+import { runDailyEarningsEngine } from '../jobs/dailyEarnings.job.js';
 
 export const getAdminDashboard = async (req, res, next) => {
   try {
@@ -385,6 +386,93 @@ export const updateSettings = async (req, res, next) => {
     });
 
     return ApiResponse.success(res, `Setting "${key}" updated successfully`, setting);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Daily Earnings Management ───────────────────────────────────────────────
+
+export const getDailyEarningsStatus = async (req, res, next) => {
+  try {
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const activeInvestments = await Investment.find({ status: 'active' })
+      .populate('user', 'name email phone avatar wallet')
+      .sort({ createdAt: -1 });
+
+    const todayEarnings = await Earning.find({
+      earningDate: { $regex: `^${todayStr}` },
+      status: 'credited'
+    });
+
+    const creditedInvestmentMap = new Map();
+    todayEarnings.forEach((e) => {
+      creditedInvestmentMap.set(e.investment.toString(), e.amount);
+    });
+
+    const activeInvestmentsCount = activeInvestments.length;
+    const totalDailyLiability = activeInvestments.reduce((sum, inv) => sum + (inv.dailyEarning || 0), 0);
+    const creditedTodayCount = activeInvestments.filter((inv) => creditedInvestmentMap.has(inv._id.toString())).length;
+    const creditedTodayAmount = activeInvestments.reduce((sum, inv) => sum + (creditedInvestmentMap.get(inv._id.toString()) || 0), 0);
+    const pendingTodayCount = Math.max(0, activeInvestmentsCount - creditedTodayCount);
+    const pendingTodayAmount = Math.max(0, totalDailyLiability - creditedTodayAmount);
+
+    const formattedInvestments = activeInvestments.map((inv) => {
+      const isCredited = creditedInvestmentMap.has(inv._id.toString());
+      return {
+        _id: inv._id,
+        user: inv.user,
+        planName: inv.planName,
+        badge: inv.badge,
+        color: inv.color,
+        amount: inv.amount,
+        dailyEarning: inv.dailyEarning,
+        durationDays: inv.durationDays,
+        completedDays: inv.completedDays,
+        totalEarned: inv.totalEarned,
+        status: inv.status,
+        createdAt: inv.createdAt,
+        alreadyCreditedToday: isCredited,
+        creditedTodayAmount: creditedInvestmentMap.get(inv._id.toString()) || 0
+      };
+    });
+
+    const recentLogs = await AuditLog.find({ action: 'ADMIN_DISTRIBUTE_DAILY_EARNINGS' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('actor', 'name email');
+
+    return ApiResponse.success(res, 'Daily earnings status retrieved', {
+      todayStr,
+      activeInvestmentsCount,
+      totalDailyLiability,
+      creditedTodayCount,
+      creditedTodayAmount,
+      pendingTodayCount,
+      pendingTodayAmount,
+      activeInvestments: formattedInvestments,
+      recentLogs
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const distributeDailyEarnings = async (req, res, next) => {
+  try {
+    const { force = false, investmentId = null } = req.body;
+
+    const result = await runDailyEarningsEngine({
+      force: Boolean(force),
+      investmentId: investmentId || null,
+      actorId: req.user._id
+    });
+
+    return ApiResponse.success(
+      res,
+      `Daily earnings processed: ${result.processedCount} credited, ${result.skippedCount} skipped`,
+      result
+    );
   } catch (error) {
     next(error);
   }

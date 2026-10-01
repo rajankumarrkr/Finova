@@ -30,7 +30,12 @@ import {
   Trash2,
   Sparkles,
   Building2,
-  Copy
+  Copy,
+  Zap,
+  Coins,
+  CheckCircle,
+  Wallet,
+  CheckCheck
 } from 'lucide-react';
 import { getMediaUrl, handleImageError } from '../utils/media';
 
@@ -89,6 +94,17 @@ export const Admin = () => {
 
   // Action Loading ID
   const [actioningId, setActioningId] = useState(null);
+
+  // Daily Earnings (ROI) State
+  const [dailyEarningsStatus, setDailyEarningsStatus] = useState(null);
+  const [loadingDailyEarnings, setLoadingDailyEarnings] = useState(false);
+  const [distributingEarnings, setDistributingEarnings] = useState(false);
+  const [forcePayout, setForcePayout] = useState(false);
+  const [showConfirmPayoutModal, setShowConfirmPayoutModal] = useState(false);
+  const [payoutResult, setPayoutResult] = useState(null);
+  const [dailyEarningsFilter, setDailyEarningsFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'CREDITED'
+  const [dailyEarningsSearch, setDailyEarningsSearch] = useState('');
+  const [singleDistributingId, setSingleDistributingId] = useState(null);
 
   const isAdmin = isAuthenticated && user?.role === 'admin';
 
@@ -250,6 +266,64 @@ export const Admin = () => {
     }
   }, [isAdmin]);
 
+  // Fetch Daily Earnings Status
+  const fetchDailyEarningsStatus = useCallback(async () => {
+    if (!isAdmin) return;
+    setLoadingDailyEarnings(true);
+    try {
+      const res = await adminService.getDailyEarningsStatus();
+      if (res?.success) {
+        setDailyEarningsStatus(res.data || null);
+      }
+    } catch (e) {
+      console.error('Error fetching daily earnings status:', e);
+    } finally {
+      setLoadingDailyEarnings(false);
+    }
+  }, [isAdmin]);
+
+  // Distribute Daily Returns to All Active Plans
+  const handleDistributeAll = async () => {
+    setDistributingEarnings(true);
+    setShowConfirmPayoutModal(false);
+    try {
+      const res = await adminService.distributeDailyEarnings({ force: forcePayout });
+      if (res?.success) {
+        setPayoutResult(res.data);
+        showToast(
+          `Successfully credited ₹${res.data?.totalAmountCredited?.toLocaleString('en-IN') || 0} to ${res.data?.processedCount || 0} active plans!`,
+          'success'
+        );
+        fetchDailyEarningsStatus();
+        fetchAdminMetrics();
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to distribute daily earnings'), 'error');
+    } finally {
+      setDistributingEarnings(false);
+    }
+  };
+
+  // Distribute Single Plan Daily Return
+  const handleDistributeSingle = async (investmentId) => {
+    setSingleDistributingId(investmentId);
+    try {
+      const res = await adminService.distributeDailyEarnings({ investmentId, force: true });
+      if (res?.success) {
+        showToast(
+          `Credited ₹${res.data?.totalAmountCredited?.toLocaleString('en-IN') || 0} for this plan!`,
+          'success'
+        );
+        fetchDailyEarningsStatus();
+        fetchAdminMetrics();
+      }
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to credit daily return for this plan'), 'error');
+    } finally {
+      setSingleDistributingId(null);
+    }
+  };
+
   // Reset plan form
   const resetPlanForm = () => {
     setPlanForm({
@@ -343,8 +417,9 @@ export const Admin = () => {
       fetchUsers();
       fetchPlans();
       fetchSettings();
+      fetchDailyEarningsStatus();
     }
-  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers, fetchPlans, fetchSettings]);
+  }, [isAdmin, fetchAdminMetrics, fetchDeposits, fetchWithdrawals, fetchUsers, fetchPlans, fetchSettings, fetchDailyEarningsStatus]);
 
   // Approve / Reject Deposit
   const handleDepositAction = async (id, status, utr) => {
@@ -536,6 +611,21 @@ export const Admin = () => {
   const pendingDepositsCount = deposits.filter(d => d.status === 'VERIFICATION_PENDING').length;
   const pendingWithdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
 
+  const rawInvestments = dailyEarningsStatus?.activeInvestments || [];
+  const filteredInvestments = rawInvestments.filter((inv) => {
+    if (dailyEarningsFilter === 'PENDING' && inv.alreadyCreditedToday) return false;
+    if (dailyEarningsFilter === 'CREDITED' && !inv.alreadyCreditedToday) return false;
+    if (dailyEarningsSearch) {
+      const q = dailyEarningsSearch.toLowerCase();
+      const userName = inv.user?.name?.toLowerCase() || '';
+      const userEmail = inv.user?.email?.toLowerCase() || '';
+      const userPhone = inv.user?.phone?.toLowerCase() || '';
+      const planName = inv.planName?.toLowerCase() || '';
+      return userName.includes(q) || userEmail.includes(q) || userPhone.includes(q) || planName.includes(q);
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-12 px-1 sm:px-0">
       {/* Top Admin Bar */}
@@ -618,11 +708,60 @@ export const Admin = () => {
         </div>
       </div>
 
+      {/* Quick Action: Daily Return Distribution Banner */}
+      <div className="p-3 sm:p-4 bg-gradient-to-r from-[#0A261A] via-[#123A29] to-[#0A261A] border border-amber-400/30 rounded-2xl sm:rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-[#F4D06F] shrink-0">
+            <Zap className="w-5 h-5 fill-current" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs sm:text-sm font-bold text-white font-mono">Daily Return Distribution</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                (dailyEarningsStatus?.pendingTodayCount || 0) > 0
+                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              }`}>
+                {(dailyEarningsStatus?.pendingTodayCount || 0) > 0
+                  ? `${dailyEarningsStatus?.pendingTodayCount} Plan(s) Pending Today`
+                  : 'Today Payout Completed'}
+              </span>
+              <span className="text-[10px] font-mono text-[#F4D06F]">
+                ₹{(dailyEarningsStatus?.pendingTodayAmount || 0).toLocaleString('en-IN')} pending
+              </span>
+            </div>
+            <p className="text-[11px] text-[#A7B8AE] mt-0.5">
+              Active plan users ke wallet me 1-click se unka daily income add karein.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <button
+            onClick={() => setActiveTab('dailyIncome')}
+            className="px-3 sm:px-4 py-2 bg-[#061F15] hover:bg-[#123A29] text-[#A7B8AE] hover:text-white border border-emerald-500/20 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+          >
+            Manage ROI
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('dailyIncome');
+              setShowConfirmPayoutModal(true);
+            }}
+            disabled={distributingEarnings}
+            className="px-4 sm:px-5 py-2 bg-gradient-to-r from-[#F4D06F] to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
+          >
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            <span>Distribute Now</span>
+          </button>
+        </div>
+      </div>
+
       {/* Navigation Tabs - Scrollable */}
       <div className="flex items-center gap-1.5 sm:gap-2 border-b border-emerald-500/20 pb-3 overflow-x-auto no-scrollbar -mx-1 px-1">
         {[
           { key: 'deposits', icon: ArrowDownLeft, label: 'Deposits', shortLabel: 'Deposits', badge: pendingDepositsCount },
           { key: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals', shortLabel: 'Withdraw', badge: pendingWithdrawalsCount },
+          { key: 'dailyIncome', icon: Zap, label: 'Daily ROI Payout', shortLabel: 'Daily ROI', badge: dailyEarningsStatus?.pendingTodayCount || 0 },
           { key: 'users', icon: Users, label: 'Users', shortLabel: 'Users', badge: 0 },
           { key: 'plans', icon: Briefcase, label: 'Investment Plans', shortLabel: 'Plans', badge: 0 },
           { key: 'settings', icon: Settings, label: 'Settings', shortLabel: 'Settings', badge: 0 }
@@ -1176,6 +1315,452 @@ export const Admin = () => {
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* Tab: Daily ROI / Earnings Distribution             */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {activeTab === 'dailyIncome' && (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Main Action & Overview Panel */}
+          <div className="bg-[#0A261A] border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-500/16 pb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white font-mono flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-[#F4D06F] fill-current" />
+                  <span>Daily Return Distribution Engine (दैनिक आय वितरण)</span>
+                </h2>
+                <p className="text-xs text-[#A7B8AE] mt-1">
+                  Active investment plans ke sabhi users ko unka daily return credit karne ka automated system.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  onClick={fetchDailyEarningsStatus}
+                  className="px-3 py-1.5 bg-[#061F15] hover:bg-[#123A29] text-[#A7B8AE] hover:text-[#F4D06F] rounded-xl text-xs font-semibold border border-emerald-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Refresh status"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingDailyEarnings ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="p-3.5 sm:p-4 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-[#A7B8AE]">Active Plans</span>
+                  <Briefcase className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold font-mono text-white">
+                  {dailyEarningsStatus?.activeInvestmentsCount || 0}
+                </div>
+                <span className="text-[10px] text-emerald-400">Total generating return</span>
+              </div>
+
+              <div className="p-3.5 sm:p-4 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-[#A7B8AE]">Daily Payout Liability</span>
+                  <TrendingUp className="w-4 h-4 text-[#F4D06F]" />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold font-mono text-[#F4D06F]">
+                  ₹{(dailyEarningsStatus?.totalDailyLiability || 0).toLocaleString('en-IN')}
+                </div>
+                <span className="text-[10px] text-amber-300">Sum of daily returns/day</span>
+              </div>
+
+              <div className="p-3.5 sm:p-4 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-[#A7B8AE]">Credited Today</span>
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
+                  ₹{(dailyEarningsStatus?.creditedTodayAmount || 0).toLocaleString('en-IN')}
+                </div>
+                <span className="text-[10px] text-emerald-400 font-medium">
+                  {dailyEarningsStatus?.creditedTodayCount || 0} plan(s) paid today
+                </span>
+              </div>
+
+              <div className="p-3.5 sm:p-4 bg-[#061F15] border border-emerald-500/20 rounded-xl sm:rounded-2xl">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-[#A7B8AE]">Pending Today</span>
+                  <Clock className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-xl sm:text-2xl font-bold font-mono text-amber-400">
+                  ₹{(dailyEarningsStatus?.pendingTodayAmount || 0).toLocaleString('en-IN')}
+                </div>
+                <span className="text-[10px] text-amber-400 font-medium">
+                  {dailyEarningsStatus?.pendingTodayCount || 0} plan(s) waiting
+                </span>
+              </div>
+            </div>
+
+            {/* Master Action Trigger Card */}
+            <div className="p-4 sm:p-6 bg-gradient-to-br from-[#061F15] via-[#0E3524] to-[#0A261A] border-2 border-[#F4D06F]/40 rounded-2xl sm:rounded-3xl shadow-2xl relative overflow-hidden space-y-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F4D06F]/20 text-[#F4D06F] border border-[#F4D06F]/40 uppercase tracking-wide">
+                      Instant Payout Action
+                    </span>
+                    <span className="text-[11px] text-[#A7B8AE] font-mono">
+                      Date: {dailyEarningsStatus?.todayStr || new Date().toISOString().substring(0, 10)}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">
+                    One-Click Wallet Credit for All Active Plans
+                  </h3>
+                  <p className="text-xs text-[#A7B8AE] max-w-2xl leading-relaxed">
+                    Niche diye gaye button par click karte hi sabhi active plans ka daily return seedhe unke wallet me credit ho jayega, transaction ledger update hoga aur plan completed days add honge.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
+                  <button
+                    onClick={() => setShowConfirmPayoutModal(true)}
+                    disabled={
+                      distributingEarnings ||
+                      loadingDailyEarnings ||
+                      (!forcePayout && (dailyEarningsStatus?.pendingTodayCount || 0) === 0 && (dailyEarningsStatus?.activeInvestmentsCount || 0) > 0)
+                    }
+                    className="px-6 py-3.5 bg-gradient-to-r from-[#F4D06F] via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+                  >
+                    {distributingEarnings ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Processing Distribution...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 fill-current" />
+                        <span>
+                          {(!forcePayout && (dailyEarningsStatus?.pendingTodayCount || 0) === 0 && (dailyEarningsStatus?.activeInvestmentsCount || 0) > 0)
+                            ? 'All Plans Paid Today ✅'
+                            : 'Distribute Daily Income (क्रेडिट करें)'}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Force Payout Option & Safeguard Info */}
+              <div className="pt-3 border-t border-emerald-500/16 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-[#A7B8AE] hover:text-white">
+                  <input
+                    type="checkbox"
+                    checked={forcePayout}
+                    onChange={(e) => setForcePayout(e.target.checked)}
+                    className="w-4 h-4 rounded border-emerald-500/40 bg-[#061F15] text-amber-400 focus:ring-0 cursor-pointer accent-[#F4D06F]"
+                  />
+                  <span className="font-semibold text-white">Force Payout Mode</span>
+                  <span className="text-[11px] text-amber-300/80">
+                    (Aaj pehle se credit ho chuka ho to bhi dobara payout karne ki anumati dein)
+                  </span>
+                </label>
+
+                <div className="text-[11px] text-[#A7B8AE] flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Duplicate payout protection is enabled by default.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payout Result Banner */}
+            {payoutResult && (
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-start justify-between gap-3 animate-fadeIn">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-emerald-300">
+                      Distribution Completed Successfully!
+                    </h4>
+                    <p className="text-xs text-slate-200">
+                      Total <span className="font-mono font-bold text-[#F4D06F]">₹{payoutResult.totalAmountCredited?.toLocaleString('en-IN') || 0}</span> successfully credited across <span className="font-bold text-white">{payoutResult.processedCount || 0}</span> plan(s).
+                      {payoutResult.skippedCount > 0 && (
+                        <span className="text-[#A7B8AE]"> ({payoutResult.skippedCount} plan(s) skipped as already received today).</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPayoutResult(null)}
+                  className="p-1 text-[#A7B8AE] hover:text-white rounded-lg cursor-pointer"
+                  title="Dismiss banner"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Filter and Search Bar for Active Plans */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  {[
+                    { key: 'ALL', label: `All Active (${rawInvestments.length})` },
+                    { key: 'PENDING', label: `Pending Today (${dailyEarningsStatus?.pendingTodayCount || 0})` },
+                    { key: 'CREDITED', label: `Credited Today (${dailyEarningsStatus?.creditedTodayCount || 0})` }
+                  ].map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setDailyEarningsFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                        dailyEarningsFilter === f.key
+                          ? 'bg-[#123A29] text-[#F4D06F] border border-amber-400/40 shadow-sm'
+                          : 'bg-[#061F15] text-[#A7B8AE] hover:text-white border border-emerald-500/10'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative min-w-[240px] max-w-sm">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#71857A]" />
+                  <input
+                    type="text"
+                    value={dailyEarningsSearch}
+                    onChange={(e) => setDailyEarningsSearch(e.target.value)}
+                    placeholder="Search by user, phone, email, plan..."
+                    className="w-full pl-9 pr-4 py-2 bg-[#061F15] border border-emerald-500/20 rounded-xl text-xs text-white placeholder-[#71857A] focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                  {dailyEarningsSearch && (
+                    <button
+                      onClick={() => setDailyEarningsSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71857A] hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop Active Investments Table */}
+              <div className="hidden lg:block overflow-x-auto rounded-2xl border border-emerald-500/16">
+                <table className="w-full text-left text-xs text-[#A7B8AE]">
+                  <thead className="bg-[#061F15] text-[10px] uppercase font-semibold text-[#F4D06F]">
+                    <tr>
+                      <th className="p-3">User Details</th>
+                      <th className="p-3">Plan Info</th>
+                      <th className="p-3">Daily Return</th>
+                      <th className="p-3">Plan Progress</th>
+                      <th className="p-3">Total Earned</th>
+                      <th className="p-3">Today's Status</th>
+                      <th className="p-3 text-right">Individual Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-emerald-500/10">
+                    {loadingDailyEarnings ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-xs">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                            <span>Loading active investment plans...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredInvestments.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-xs">
+                          No active investment plans match your criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredInvestments.map((inv) => {
+                        const progressPct = Math.min(100, Math.round(((inv.completedDays || 0) / (inv.durationDays || 1)) * 100));
+                        return (
+                          <tr key={inv._id} className="hover:bg-[#061F15]/60 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2.5">
+                                <img
+                                  src={getMediaUrl(inv.user?.avatar)}
+                                  alt={inv.user?.name || 'User'}
+                                  onError={(e) => handleImageError(e, 'avatar')}
+                                  className="w-8 h-8 rounded-full object-cover ring-1 ring-emerald-500/30 shrink-0"
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-bold text-white text-xs truncate max-w-[140px]">
+                                    {inv.user?.name || 'Finova User'}
+                                  </div>
+                                  <div className="text-[10px] text-[#A7B8AE] truncate max-w-[140px]">
+                                    {inv.user?.phone || inv.user?.email || 'N/A'}
+                                  </div>
+                                  <div className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                                    <Wallet className="w-2.5 h-2.5" />
+                                    <span>Bal: ₹{(inv.user?.wallet?.availableBalance || 0).toLocaleString('en-IN')}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <div className="font-bold text-white text-xs">{inv.planName}</div>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="px-1.5 py-0.2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-mono font-bold">
+                                  {inv.badge || 'PLAN'}
+                                </span>
+                                <span className="text-[10px] font-mono text-[#A7B8AE]">
+                                  ₹{(inv.amount || 0).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="p-3 font-mono font-bold text-[#F4D06F] text-sm">
+                              +₹{inv.dailyEarning?.toLocaleString('en-IN')}
+                              <span className="text-[10px] text-[#A7B8AE] font-normal"> /day</span>
+                            </td>
+
+                            <td className="p-3">
+                              <div className="w-28 space-y-1">
+                                <div className="flex justify-between text-[10px] font-mono">
+                                  <span className="text-white font-bold">Day {inv.completedDays}</span>
+                                  <span className="text-[#A7B8AE]">of {inv.durationDays}</span>
+                                </div>
+                                <div className="w-full bg-[#061F15] h-1.5 rounded-full overflow-hidden border border-emerald-500/20">
+                                  <div
+                                    className="bg-gradient-to-r from-emerald-500 to-amber-400 h-full rounded-full transition-all"
+                                    style={{ width: `${progressPct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3 font-mono font-bold text-emerald-400">
+                              ₹{(inv.totalEarned || 0).toLocaleString('en-IN')}
+                            </td>
+
+                            <td className="p-3">
+                              {inv.alreadyCreditedToday ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  <CheckCheck className="w-3 h-3 text-emerald-400" />
+                                  <span>Paid Today (+₹{inv.dailyEarning})</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                                  <Clock className="w-3 h-3 text-amber-400" />
+                                  <span>Pending Payout</span>
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3 text-right">
+                              <button
+                                onClick={() => handleDistributeSingle(inv._id)}
+                                disabled={singleDistributingId === inv._id || (inv.alreadyCreditedToday && !forcePayout)}
+                                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-all cursor-pointer ${
+                                  inv.alreadyCreditedToday && !forcePayout
+                                    ? 'bg-[#061F15] text-[#71857A] border border-emerald-500/10 cursor-not-allowed'
+                                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20'
+                                }`}
+                              >
+                                {singleDistributingId === inv._id ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                                    <span>Crediting...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="w-3 h-3 fill-current" />
+                                    <span>{inv.alreadyCreditedToday ? 'Credit Again' : 'Credit Today'}</span>
+                                  </>
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Active Investments Cards */}
+              <div className="lg:hidden space-y-2.5">
+                {loadingDailyEarnings ? (
+                  <div className="p-6 text-center text-xs text-[#A7B8AE]">Loading plans...</div>
+                ) : filteredInvestments.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[#A7B8AE]">No active plans found.</div>
+                ) : (
+                  filteredInvestments.map((inv) => {
+                    const progressPct = Math.min(100, Math.round(((inv.completedDays || 0) / (inv.durationDays || 1)) * 100));
+                    return (
+                      <div
+                        key={inv._id}
+                        className="bg-[#061F15] border border-emerald-500/16 rounded-xl p-3 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={getMediaUrl(inv.user?.avatar)}
+                              alt={inv.user?.name || 'User'}
+                              onError={(e) => handleImageError(e, 'avatar')}
+                              className="w-7 h-7 rounded-full object-cover ring-1 ring-emerald-500/30"
+                            />
+                            <div>
+                              <div className="font-bold text-white text-xs">{inv.user?.name || 'Finova User'}</div>
+                              <div className="text-[10px] text-[#A7B8AE]">{inv.user?.phone || inv.user?.email}</div>
+                            </div>
+                          </div>
+                          {inv.alreadyCreditedToday ? (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Paid Today
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-[#0A261A] p-2 rounded-lg border border-emerald-500/10">
+                          <div>
+                            <span className="text-[9px] text-[#A7B8AE] block">Plan</span>
+                            <span className="font-bold text-white">{inv.planName}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-[#A7B8AE] block">Daily Income</span>
+                            <span className="font-mono font-bold text-[#F4D06F]">+₹{inv.dailyEarning}/day</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-[#A7B8AE] block">Progress</span>
+                            <span className="font-mono text-white text-[11px]">
+                              Day {inv.completedDays} / {inv.durationDays} ({progressPct}%)
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-[#A7B8AE] block">Total Earned</span>
+                            <span className="font-mono font-bold text-emerald-400">₹{(inv.totalEarned || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[10px] text-[#A7B8AE] font-mono">
+                            Wallet: ₹{(inv.user?.wallet?.availableBalance || 0).toLocaleString('en-IN')}
+                          </span>
+                          <button
+                            onClick={() => handleDistributeSingle(inv._id)}
+                            disabled={singleDistributingId === inv._id || (inv.alreadyCreditedToday && !forcePayout)}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
+                              inv.alreadyCreditedToday && !forcePayout
+                                ? 'bg-[#0A261A] text-[#71857A] border border-emerald-500/10'
+                                : 'bg-emerald-500 text-slate-950 font-bold'
+                            }`}
+                          >
+                            <Zap className="w-3 h-3 fill-current" />
+                            <span>{inv.alreadyCreditedToday ? 'Credit Again' : 'Credit Today'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1895,6 +2480,94 @@ export const Admin = () => {
                 className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#123A29] text-[#F4D06F] rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold cursor-pointer"
               >
                 Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Daily Earnings Distribution */}
+      {showConfirmPayoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="relative bg-[#0A261A] border-2 border-[#F4D06F]/50 rounded-2xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+              <div className="flex items-center gap-2 text-white font-mono font-bold text-sm sm:text-base">
+                <div className="w-7 h-7 rounded-lg bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-[#F4D06F]">
+                  <Zap className="w-4 h-4 fill-current" />
+                </div>
+                <span>Confirm Daily Income Payout</span>
+              </div>
+              <button
+                onClick={() => setShowConfirmPayoutModal(false)}
+                className="p-1 text-[#A7B8AE] hover:text-white rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-[#A7B8AE]">
+              <p>
+                Kya aap sabhi active investment plans ke users ke wallet me unka daily return credit karna chahte hain?
+              </p>
+
+              <div className="p-3.5 bg-[#061F15] rounded-xl border border-emerald-500/20 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#A7B8AE]">Target Plans:</span>
+                  <span className="font-bold text-white">
+                    {forcePayout
+                      ? `${dailyEarningsStatus?.activeInvestmentsCount || 0} Total Active Plan(s)`
+                      : `${dailyEarningsStatus?.pendingTodayCount || 0} Pending Active Plan(s)`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#A7B8AE]">Total Wallet Credit:</span>
+                  <span className="font-mono font-black text-[#F4D06F] text-base">
+                    ₹{forcePayout
+                      ? (dailyEarningsStatus?.totalDailyLiability || 0).toLocaleString('en-IN')
+                      : (dailyEarningsStatus?.pendingTodayAmount || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-emerald-500/10">
+                  <span className="text-[#A7B8AE]">Payout Mode:</span>
+                  <span className={`font-bold ${forcePayout ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {forcePayout ? 'Force Payout (All Active)' : 'Standard (Skip Already Paid)'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-amber-300/80 bg-amber-400/10 p-2.5 rounded-lg border border-amber-400/20 flex items-start gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Is action ke baad paise turant users ke available wallet balance me add honge aur transaction ledger entry generate ho jayegi.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConfirmPayoutModal(false)}
+                className="px-4 py-2 bg-[#061F15] hover:bg-[#123A29] text-[#A7B8AE] hover:text-white rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={distributingEarnings}
+                onClick={handleDistributeAll}
+                className="px-5 py-2.5 bg-gradient-to-r from-[#F4D06F] to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+              >
+                {distributingEarnings ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>Confirm & Credit Wallets</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

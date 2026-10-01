@@ -65,6 +65,16 @@ export const updateSetting = async (key, value) => {
   return response.data;
 };
 
+export const getDailyEarningsStatus = async () => {
+  const response = await api.get('/admin/daily-earnings/status');
+  return response.data;
+};
+
+export const distributeDailyEarnings = async (data = {}) => {
+  const response = await api.post('/admin/daily-earnings/distribute', data);
+  return response.data;
+};
+
 export const adminService = {
   getDashboard,
   getUsers,
@@ -78,7 +88,9 @@ export const adminService = {
   getWithdrawals,
   updateWithdrawalStatus,
   getSettings,
-  updateSetting
+  updateSetting,
+  getDailyEarningsStatus,
+  distributeDailyEarnings
 };
 
 export default adminService;

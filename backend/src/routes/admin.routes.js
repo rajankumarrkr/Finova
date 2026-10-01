@@ -12,7 +12,9 @@ import {
   getDeposits,
   updateDepositStatus,
   getSettings,
-  updateSettings
+  updateSettings,
+  getDailyEarningsStatus,
+  distributeDailyEarnings
 } from '../controllers/admin.controller.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/admin.js';
@@ -38,6 +40,9 @@ router.patch('/withdrawals/:id/status', updateWithdrawalStatus);
 
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
+
+router.get('/daily-earnings/status', getDailyEarningsStatus);
+router.post('/daily-earnings/distribute', distributeDailyEarnings);
 
 export default router;
 
