@@ -9,7 +9,7 @@ export const AddBankModal = () => {
 
   const [formData, setFormData] = useState({
     holderName: user?.name || '',
-    bankName: 'HDFC Bank',
+    bankName: '',
     accountNumber: '',
     confirmAccountNumber: '',
     ifscCode: ''
@@ -18,16 +18,14 @@ export const AddBankModal = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const bankOptions = [
-    "HDFC Bank",
-    "State Bank of India (SBI)",
-    "ICICI Bank",
-    "Axis Bank",
-    "Kotak Mahindra Bank",
-    "Punjab National Bank",
-    "Bank of Baroda",
-    "IndusInd Bank"
-  ];
+  React.useEffect(() => {
+    if (isAddBankOpen && user?.name && !formData.holderName) {
+      setFormData(prev => ({
+        ...prev,
+        holderName: prev.holderName || user.name
+      }));
+    }
+  }, [isAddBankOpen, user]);
 
   const handleChange = (field, val) => {
     setFormData(prev => ({ ...prev, [field]: val }));
@@ -37,7 +35,7 @@ export const AddBankModal = () => {
   const validate = () => {
     const errs = {};
     if (!formData.holderName.trim()) errs.holderName = "Account holder name is required";
-    if (!formData.bankName) errs.bankName = "Select a bank name";
+    if (!formData.bankName.trim()) errs.bankName = "Bank name is required";
     if (!formData.accountNumber || formData.accountNumber.length < 9) {
       errs.accountNumber = "Enter a valid account number (min 9 digits)";
     }
@@ -56,24 +54,33 @@ export const AddBankModal = () => {
     if (!validate()) return;
 
     setLoading(true);
-    const success = await handleAddBankAccount(formData);
+    const success = await handleAddBankAccount({
+      ...formData,
+      bankName: formData.bankName.trim()
+    });
     setLoading(false);
     if (success) {
       setIsAddBankOpen(false);
       setFormData({
         holderName: user?.name || '',
-        bankName: 'HDFC Bank',
+        bankName: '',
         accountNumber: '',
         confirmAccountNumber: '',
         ifscCode: ''
       });
+      setErrors({});
     }
+  };
+
+  const handleClose = () => {
+    setIsAddBankOpen(false);
+    setErrors({});
   };
 
   return (
     <Modal
       isOpen={isAddBankOpen}
-      onClose={() => setIsAddBankOpen(false)}
+      onClose={handleClose}
       title="Link Bank Account"
       subtitle="Manage your withdrawal account securely."
     >
@@ -101,15 +108,17 @@ export const AddBankModal = () => {
           <label className="block text-xs font-semibold text-[#A7B8AE] uppercase tracking-wider mb-1.5">
             Bank Name
           </label>
-          <select
+          <input
+            type="text"
             value={formData.bankName}
             onChange={(e) => handleChange('bankName', e.target.value)}
-            className="w-full px-4 py-2.5 bg-[#061F15] border border-emerald-500/16 rounded-xl text-sm font-medium text-[#F8FAFC] focus:outline-none focus:border-emerald-500 transition-colors"
-          >
-            {bankOptions.map(b => (
-              <option key={b} value={b} className="bg-[#061F15] text-[#F8FAFC]">{b}</option>
-            ))}
-          </select>
+            placeholder="Enter bank name (e.g. State Bank of India)"
+            className={`w-full px-4 py-2.5 bg-[#061F15] border rounded-xl text-sm font-medium text-[#F8FAFC] focus:outline-none transition-colors ${
+              errors.bankName ? 'border-rose-500/80' : 'border-emerald-500/16 focus:border-emerald-500'
+            }`}
+            required
+          />
+          {errors.bankName && <p className="text-xs text-rose-300 mt-1">{errors.bankName}</p>}
         </div>
 
         {/* Account Number */}
@@ -177,7 +186,7 @@ export const AddBankModal = () => {
           <Button
             variant="ghost"
             fullWidth
-            onClick={() => setIsAddBankOpen(false)}
+            onClick={handleClose}
             disabled={loading}
           >
             Cancel
